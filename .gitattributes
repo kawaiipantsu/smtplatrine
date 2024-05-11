@@ -1,0 +1,54 @@
+# Set the default behavior, in case people don't have core.autocrlf set.
+*           text=auto
+
+# Auto detect text files and perform LF normalization
+#*           text=auto eol=lf
+
+# PHP files
+*.php       text eol=lf diff=php
+*.phpt      text eol=lf diff=php
+*.phtml     text eol=lf diff=html
+*.twig      text eol=lf
+*.phar      binary
+
+# Configuration
+*.xml       text eol=lf
+
+# Scripts
+smtplatrine text eol=lf
+*.bash      text eol=lf
+*.sh        text eol=lf
+*.zsh       text eol=lf
+*.bat       text eol=crlf
+*.cmd       text eol=crlf
+
+# Graphics
+*.png       binary
+*.jpg       binary
+*.jpeg      binary
+*.gif       binary
+*.tif       binary
+*.tiff      binary
+*.ico       binary
+# SVG treated as text by default.
+*.svg       text
+
+# Documents
+*.csv       text eol=crlf
+*.tab       text
+*.tsv       text
+*.txt       text
+*.sql       text
+*.md        text diff=markdown
+
+# Source files
+# ============
+*.vim       text eol=lf
+.vimrc      text eol=lf
+.gvimrc     text eol=lf
+
+# Git files
+*.gitattributes text
+.gitignore      text
+.gitattributes  export-ignore
+.gitignore      export-ignore

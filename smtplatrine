@@ -21,6 +21,12 @@
 *  https://github.com/kawaiipantsu/smtplatrine
 */
 
+// Allow the script to hang around waiting for connections
+set_time_limit(0);
+
+// Flush buffers
+ob_implicit_flush();
+
 // Set application name
 cli_set_process_title("smtplatrine");
 
