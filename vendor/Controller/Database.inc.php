@@ -5,6 +5,7 @@ namespace Controller;
 class Database {
 
     protected $db;
+    private $logger;
     private $config = false;
 
     // Contructor

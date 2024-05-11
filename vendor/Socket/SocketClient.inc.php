@@ -7,6 +7,8 @@ class SocketClient {
     private $connection;
     private $address;
     private $port;
+    private $peeraddress;
+    private $peerport;
     private $logger;
     private $config = false;
 
@@ -27,7 +29,15 @@ class SocketClient {
         socket_getsockname($connection, $address, $port);
         $this->address = $address;
         $this->port = $port;
+
+        $peeraddress = ''; 
+        $peerport = '';
+        socket_getpeername($connection, $peeraddress, $peerport);
+        $this->peeraddress = $peeraddress;
+        $this->peerport = $peerport;
+        
         $this->connection = $connection;
+        
     }
 
     // Destructor
@@ -64,6 +74,16 @@ class SocketClient {
     // Socket Client Get Port
     public function getPort() {
         return $this->port;
+    }
+
+    // Socket Client Get Peer Address
+    public function getPeerAddress() {
+        return $this->peeraddress;
+    }
+
+    // Socket Client Get Peer Port
+    public function getPeerPort() {
+        return $this->peerport;
     }
 
     // Socket Client Close

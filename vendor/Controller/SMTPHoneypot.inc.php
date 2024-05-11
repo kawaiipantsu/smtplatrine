@@ -133,7 +133,8 @@ class SMTPHoneypot {
         $this->emailEML .= $this->buildReceivedHeader();
         // Custom X-Latrine related headers
         $this->addCustomHeader("X-Latrine-Queue-ID",$this->emailQueueID);
-        $this->addCustomHeader("X-Latrine-ClientIP","%%CLIENTIP%%");
+        $this->addCustomHeader("X-Latrine-Client-IP","%%CLIENTIP%%");
+        $this->addCustomHeader("X-Latrine-Client-Port","%%CLIENTPORT%%");
         $this->addCustomHeader("X-Latrine-Server-Listen",$srvAddress);
         $this->addCustomHeader("X-Latrine-Server-Port",$srvPort);
 
@@ -184,9 +185,14 @@ class SMTPHoneypot {
 
             // Fourth check that we always get DATA
             if ( count($validateCommands) == 4 ) {
-                if ( $validateCommands[3] == 'DATA' ) {
+                if ( $validateCommands[3] == 'DATA' || $validateCommands[3] == 'RCPT TO' ) {
                     return true;
                 }
+            }
+
+            // This should be enoght, from here on out all commands should be in order
+            if ( count($validateCommands) > 4 ) {
+                return true;
             }
 
         }
@@ -340,7 +346,8 @@ class SMTPHoneypot {
                 $output = $this->reply(false,250);
                 $this->addCommandSequence($command); // Important command, Add to sequence array
                 if ( $argument ) {
-                    $this->emailRCPT[] = $argument;
+                    // Push to emailRCPT array
+                    $this->emailRCPT[] = trim($argument);
                 }
                 break;
             case 'DATA':

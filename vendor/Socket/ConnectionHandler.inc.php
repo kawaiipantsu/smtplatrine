@@ -7,6 +7,8 @@ class connectionHandler {
     protected $pid;
     private $logger;
     private $config = false;
+    private $srvPort = false;
+    private $srvAddress = false;
     
     // Constructor
     public function __construct( $socket ) {
@@ -35,6 +37,11 @@ class connectionHandler {
             $this->handle();
             exit(0);
         }
+
+        // We can use these for logs
+        $this->srvAddress = strtolower(trim($this->config['server']['server_listen']));
+		$this->srvPort = strtolower(trim($this->config['server']['server_port']));
+
     }
 
     // Destructor
@@ -52,7 +59,8 @@ class connectionHandler {
     public function handle() {
         $client = $this->socket;
         $read = '';
-        $this->logger->logMessage('['.$client->getAddress().'] Connected at port ' . $client->getPort());
+
+        $this->logger->logMessage('[client] Client connected '.$client->getPeerAddress().':'.$client->getPeerPort().'->'.$client->getAddress().':'.$client->getPort());
 
         // Load up Database functionality
         $db = new \Controller\Database;
@@ -89,6 +97,7 @@ class connectionHandler {
                             $eml = trim($smtp->getEmailEML());
                             $eml = str_replace('%%CLIENTIP%%',$client->getAddress(),$eml);
                             $eml = str_replace('%%CLIENTIPREVERSE%%',gethostbyaddr($client->getAddress()),$eml);
+                            $eml = str_replace('%%CLIENTPORT%%',$client->getPeerPort(),$eml);
                             print("----\n".trim($eml)."\n----\n");
                         }
                     }
