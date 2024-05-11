@@ -9,6 +9,7 @@ class SMTPHoneypot {
     private $smtpAcceptedCommands = array(
         'HELO',
         'EHLO',
+        'AUTH',
         'MAIL FROM',
         'RCPT TO',
         'DATA',
@@ -25,6 +26,7 @@ class SMTPHoneypot {
 
     // Email components
     private $emailHELO = false;
+    private $authCreds = array();
     private $emailQueueID = false;
     private $emailData = false;
     private $emailFrom = false;
@@ -171,14 +173,17 @@ class SMTPHoneypot {
 
             // Second check that we always get MAIL FROM
             if ( count($validateCommands) == 2 ) {
-                if ( $validateCommands[1] == 'MAIL FROM' ) {
+                // Next up is MAIL FROM or AUTH (if recieved!)
+                if ( $validateCommands[1] == 'MAIL FROM' || $validateCommands[1] == 'AUTH' ) {
                     return true;
                 }
             }
 
             // Third check that we always get RCPT TO
             if ( count($validateCommands) == 3 ) {
-                if ( $validateCommands[2] == 'RCPT TO' ) {
+                if ( $validateCommands[1] == 'AUTH' && $validateCommands[2] == 'MAIL FROM' ) {
+                    return true;
+                } elseif ( $validateCommands[2] == 'RCPT TO' ) {
                     return true;
                 }
             }
@@ -354,6 +359,14 @@ class SMTPHoneypot {
                 $this->addCommandSequence($command); // Important command, Add to sequence array
                 $this->setSMTPDATAmode(true);
                 $output = $this->reply(false,354);
+                break;
+            case 'AUTH':
+                if ( $argument ) {
+                    $this->authCreds[] = $argument;
+                    $output = $this->reply(false,250);
+                } else {
+                    $output = $this->reply(false,501);
+                }
                 break;
             case 'RSET':
                 $output = $this->reply(false,250);
