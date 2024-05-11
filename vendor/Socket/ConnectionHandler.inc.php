@@ -54,9 +54,20 @@ class connectionHandler {
         $read = '';
         $this->logger->logMessage('['.$client->getAddress().'] Connected at port ' . $client->getPort());
 
+        // Load up Database functionality
+        $db = new \Controller\Database;
+
         // Load up SMTP Honeypot functionaility
         $smtp = new \Controller\SMTPHoneypot;
-
+        // If db return false, close connection with log message
+        if ( $db === false ) {
+            $client->send($smtp->sendBanner());
+            $client->send($smtp->sendError('421 Service not available, closing transmission channel'));
+            $client->close();
+            $this->logger->logErrorMessage('['.$client->getAddress().'] Database connection failed, closing connection');
+            return false;
+        }
+        
         // Send SMTP Banner
         $client->send($smtp->sendBanner());
 
