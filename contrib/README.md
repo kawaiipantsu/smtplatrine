@@ -4,6 +4,7 @@
 
 ```
 📦contrib
+ ┣ 📜.multitailrc
  ┣ 📜monitor_git_graph.sh
  ┣ 📜monitor_listner.sh
  ┣ 📜README.md
@@ -15,6 +16,7 @@
 | Filename | Description |
 |------:|:------|
 | [README.md](README.md) | This file duh! |
+| [.multitailrc](.multitailrc) | This is a file for MultiTail with smtllatrine color scheme :)
 | [monitor_git_graph.sh](monitor_git_graph.sh) | Script to display GIT Graph visualizing your work while working! |
 | [monitor_listner.sh](monitor_listner.sh) | Script to help you debug networking if the server/clients work |
 | [telnet_smtp_example.txt](telnet_smtp_example.txt) | Telnet/SMTP command step by step for sending a mail for reference|

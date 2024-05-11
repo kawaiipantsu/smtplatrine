@@ -1,0 +1,51 @@
+#      Contrib      _ _   _ _        _ _
+#   _ __ ___  _   _| | |_(_) |_ __ _(_) |
+#  | '_ ` _ \| | | | | __| | __/ _` | | |
+#  | | | | | | |_| | | |_| | || (_| | | |
+#  |_| |_| |_|\__,_|_|\__|_|\__\__,_|_|_|
+# ========================================
+# smtplatrine color scheme for Multitail
+# Put in ~/.multitailrc
+
+#check_mail:0
+scheme:smtplatrine:smtplatrine.log
+
+colorscheme:smtplatrine
+### Possible colors: red, green, yellow, blue, magenta, cyan, white
+### Log line example: 2024-05-11 20:15:46 smtplatrine[442660]: (DEBUG) [Socket/Server] Error reporting level set to: 3
+# - Timestamp
+cs_re:cyan,,bold:^([0-9]{4}-[0-9]{2}-[0-9]{2} [0-9]{2}:[0-9]{2}:[0-9]{2})
+
+# - PID Title[PID]
+cs_re:cyan:[.]+\[[0-9]{1,}\]:
+
+# - MARK INFO
+cs_re:white,cyan,bold:(\(INFO\)|\(INFORMATION\))
+cs_re_s:white,,bold:\(INFO\)(.*)
+cs_re_s:white,,bold:\(INFORMATION\)(.*)
+
+# - MARK DEBUG
+cs_re:white,,bold:(\(DEBUG\)|\(XDEBUG\))
+cs_re_s:cyan:\(DEBUG\)(.*)
+cs_re_s:cyan:\(XDEBUG\)(.*)
+
+# - MARK FATAL STUFF
+cs_re:white,red,bold:(\(ALERT\)|\(CRITICAL\)|\(CRIT\)|\(FATAL\))
+cs_re_s:red:\(ALERT\)(.*)
+cs_re_s:red:\(CRITICAL\)(.*)
+cs_re_s:red:\(CRIT\)(.*)
+cs_re_s:red:\(FATAL\)(.*)
+
+# - MARK ERROR STUFF
+cs_re:white,red:(\(ERROR\)|\(ERR\))
+cs_re_s:red:\(ERR\)(.*)
+cs_re_s:red:\(ERROR\)(.*)
+
+# - MARK WARNING STUFF
+cs_re:white,yellow,bold:(\(WARNING\)|\(WARN\))
+cs_re_s:yellow:\(WARN\)(.*)
+cs_re_s:yellow:\(WARNING\)(.*)
+
+# - MARK NOTICE STUFF
+cs_re:white,blue,bold:(\(NOTICE\)|\(\))
+cs_re_s:blue:\(NOTICE\)(.*)
