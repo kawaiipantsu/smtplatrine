@@ -10,6 +10,11 @@ if( ! extension_loaded('pcntl' ) ) {
 	exit(-1);
 }
 
+if( ! extension_loaded('mailparse' ) ) {
+	echo "This example requires mailparse extension (https://www.php.net/manual/en/mailparse.installation.php)\n";
+	exit(-1);
+}
+
 // Set include path
 set_include_path(".:/usr/lib/php:/usr/local/lib/php:".__DIR__);
 

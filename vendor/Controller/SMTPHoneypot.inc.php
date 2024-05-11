@@ -110,8 +110,8 @@ class SMTPHoneypot {
         $banner = array_key_exists("smtp_banner",$this->config['smtp']) ? trim($this->config['smtp']['smtp_banner']) : 'SMTP Honeypot';
         $fullBanner = $domain.' '.$banner;
         $resv = "Received: from %%CLIENTIP%% ( %%CLIENTIP%% [%%CLIENTIPREVERSE%%])\r\n";
-        $resv .= "    by ".$domain." (Postfix) with ESMTP id ".$this->emailQueueID."\r\n";
-        $resv .= "    for <".$this->emailHELO.">; ".date('r')."\r\n";
+        $resv .= " by ".$domain." (Postfix) with ESMTP id ".$this->emailQueueID."\r\n";
+        $resv .= " for <".$this->emailHELO.">; ".date('r')."\r\n";
         return $resv;
     }
 

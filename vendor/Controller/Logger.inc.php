@@ -59,6 +59,7 @@ class Logger {
         $this->logDebugMessage("[logger] Vendor ".$this->namespace." log level set: ".$vendor_log_level);
 
         // Set the new log level
+        //$this->enableDisplay();
         $this->disableDisplay();
 
         // Build int from constants

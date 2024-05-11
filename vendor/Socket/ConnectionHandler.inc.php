@@ -98,7 +98,10 @@ class connectionHandler {
                             $eml = str_replace('%%CLIENTIP%%',$client->getAddress(),$eml);
                             $eml = str_replace('%%CLIENTIPREVERSE%%',gethostbyaddr($client->getAddress()),$eml);
                             $eml = str_replace('%%CLIENTPORT%%',$client->getPeerPort(),$eml);
-                            print("----\n".trim($eml)."\n----\n");
+                            $eml .= "\n\r";
+                            // Send raw email to EmailParser
+                            $email = new \Controller\EmailParser($eml);
+                            print_r($email->getMailDetails());
                         }
                     }
                 } else {
