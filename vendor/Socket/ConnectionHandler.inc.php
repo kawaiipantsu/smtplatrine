@@ -7,6 +7,8 @@ class connectionHandler {
     protected $pid;
     private $logger;
     private $config = false;
+    private $srvPort = false;
+    private $srvAddress = false;
     
     // Constructor
     public function __construct( $socket ) {
@@ -35,6 +37,11 @@ class connectionHandler {
             $this->handle();
             exit(0);
         }
+
+        // We can use these for logs
+        $this->srvAddress = strtolower(trim($this->config['server']['server_listen']));
+		$this->srvPort = strtolower(trim($this->config['server']['server_port']));
+
     }
 
     // Destructor
@@ -52,11 +59,24 @@ class connectionHandler {
     public function handle() {
         $client = $this->socket;
         $read = '';
-        $this->logger->logMessage('['.$client->getAddress().'] Connected at port ' . $client->getPort());
+
+        $this->logger->logMessage('[client] Client connected '.$client->getPeerAddress().':'.$client->getPeerPort().'->'.$client->getAddress().':'.$client->getPort());
+
+        // Load up Database functionality
+        $db = new \Controller\Database;
 
         // Load up SMTP Honeypot functionaility
         $smtp = new \Controller\SMTPHoneypot;
-
+        // If db return false, close connection with log message
+        if ( !$db->isConfigLoaded() ) {
+            $client->send($smtp->sendBanner());
+            $client->send($smtp->closeConnection());
+            $this->logger->logErrorMessage('['.$client->getAddress().'] Database connection failed, closing connection');
+            $client->close();
+            $this->logger->logMessage("[".$client->getAddress()."] Disconnected");
+            return false;
+        }
+        
         // Send SMTP Banner
         $client->send($smtp->sendBanner());
 
@@ -74,6 +94,11 @@ class connectionHandler {
                         // Detect if mail was "simulated" and close connection
                         if ( preg_match('/^250 Ok: queued as /i',$dataStatus) ) {
                             $this->logger->logMessage("[".$client->getAddress()."] Successfully queued mail for relaying");
+                            $eml = trim($smtp->getEmailEML());
+                            $eml = str_replace('%%CLIENTIP%%',$client->getAddress(),$eml);
+                            $eml = str_replace('%%CLIENTIPREVERSE%%',gethostbyaddr($client->getAddress()),$eml);
+                            $eml = str_replace('%%CLIENTPORT%%',$client->getPeerPort(),$eml);
+                            print("----\n".trim($eml)."\n----\n");
                         }
                     }
                 } else {
