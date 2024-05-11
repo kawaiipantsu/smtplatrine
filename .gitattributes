@@ -15,6 +15,7 @@
 *.xml       text eol=lf
 
 # Scripts
+smtplatrine text eol=lf
 *.bash      text eol=lf
 *.sh        text eol=lf
 *.zsh       text eol=lf
