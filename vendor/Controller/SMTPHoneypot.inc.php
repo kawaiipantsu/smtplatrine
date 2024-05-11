@@ -24,12 +24,13 @@ class SMTPHoneypot {
     private $dataLastLine = false;
 
     // Email components
-    private $emailEhlo = false;
+    private $emailHELO = false;
     private $emailQueueID = false;
-    private $emailFrom = false;
-    private $emailTo = false;
-    private $emailSubject = false;
     private $emailData = false;
+    private $emailFrom = false;
+    private $emailRCPT = array();
+
+    private $emailEML = '';
     
     // Constructor
     public function __construct() {
@@ -94,6 +95,55 @@ class SMTPHoneypot {
     // Add DATA to emailData
     private function addEmailData($data) {
         $this->emailData .= $data;
+    }
+
+    // Function to add custom X-header to email EML
+    private function addCustomHeader($header,$value) {
+        $this->emailEML .= $header.": ".$value."\r\n";
+    }
+
+    // Create the Recieved email EML initial header
+    private function buildReceivedHeader() {
+        $domain = array_key_exists("smtp_domain",$this->config['smtp']) ? trim($this->config['smtp']['smtp_domain']) : 'smtp.example.com';
+        $banner = array_key_exists("smtp_banner",$this->config['smtp']) ? trim($this->config['smtp']['smtp_banner']) : 'SMTP Honeypot';
+        $fullBanner = $domain.' '.$banner;
+        $resv = "Received: from %%CLIENTIP%% ( %%CLIENTIP%% [%%CLIENTIPREVERSE%%])\r\n";
+        $resv .= "    by ".$domain." (Postfix) with ESMTP id ".$this->emailQueueID."\r\n";
+        $resv .= "    for <".$this->emailHELO.">; ".date('r')."\r\n";
+        return $resv;
+    }
+
+    // Build rawEML from email components
+    private function buildEmailEML() {
+
+        // Just some default config values we might need
+        $domain = array_key_exists("smtp_domain",$this->config['smtp']) ? trim($this->config['smtp']['smtp_domain']) : 'smtp.example.com';
+        $banner = array_key_exists("smtp_banner",$this->config['smtp']) ? trim($this->config['smtp']['smtp_banner']) : 'SMTP Honeypot';
+        $fullBanner = $domain.' '.$banner;
+        $srvAddress = strtolower(trim($this->config['server']['server_listen']));
+		$srvPort = strtolower(trim($this->config['server']['server_port']));
+
+        // First add return path
+        $this->emailEML .= "Return-Path: <bounce@".$domain.">\r\n";
+        // Add Delivered to
+        foreach($this->emailRCPT as $rcpt) {
+            $this->emailEML .= "Delivered-To: ".$rcpt."\r\n";
+        }
+        // Add Recieved header
+        $this->emailEML .= $this->buildReceivedHeader();
+        // Custom X-Latrine related headers
+        $this->addCustomHeader("X-Latrine-Queue-ID",$this->emailQueueID);
+        $this->addCustomHeader("X-Latrine-ClientIP","%%CLIENTIP%%");
+        $this->addCustomHeader("X-Latrine-Server-Listen",$srvAddress);
+        $this->addCustomHeader("X-Latrine-Server-Port",$srvPort);
+
+        // Create the actual EML body from DATA
+        $this->emailEML .= $this->emailData."\r\n";
+    }
+
+    // Get email EML
+    public function getEmailEML() {
+        return $this->emailEML;
     }
 
     // SMTP compliant check order of command sequence
@@ -191,16 +241,25 @@ class SMTPHoneypot {
 
         // Log SMTP DATA (DEBUG) if not empty
         $dataLog = $data;
-        if ( $dataLog && $dataLog != "" ) $this->logger->logDebugMessage("[smtp] Recieved DATA (".strlen($dataLog)." bytes)");
-
+        if ( $dataLog && $dataLog != "" ) {
+            $this->logger->logDebugMessage("[smtp] Recieved DATA (".strlen($dataLog)." bytes)");
+            //$this->logger->logDebugMessage("[smtp] : ".$dataLog);
+        }
         // Update last line
-        $this->dataLastLine = $data;
+        $_testLines = explode("\n",$data);
+        if ( count($_testLines) > 1 ) {
+            $this->dataLastLine = substr($data, -2);
+        } else $this->dataLastLine = $data;
 
         // Check if end of data
-        if ( preg_match('/^(\r?\n){1}\.(\r?\n){1}$/',$dataQuitSequence) ) {
+        if ( preg_match('/^(\r?\n){1}\.(\r?\n){1}$/',$dataQuitSequence) || preg_match('/^(\r?\n){1}\.(\r?\n){1}$/',$data) ) {
             $this->setSMTPDATAmode(false);
             $this->logger->logDebugMessage("[smtp] End of DATA (total bytes = ".strlen($this->emailData).")");
             $queue_number = $this->generateQueueID();
+            // Set queue number
+            $this->emailQueueID = $queue_number;
+            // Build email EML
+            $this->buildEmailEML();
             return $this->reply(" Ok: queued as ".$queue_number,250);
         } else {
             // Build email data
@@ -261,22 +320,28 @@ class SMTPHoneypot {
                 $output[] = $this->reply('-'.$domain,250);
                 $extra = $this->generateSMTPfeatures();
                 $output = array_merge($output,$extra);
-                $this->emailEhlo = $argument;
+                $this->emailHELO = $argument;
                 break;
             case 'EHLO':
                 $this->addCommandSequence($command); // Important command, Add to sequence array
                 $output[] = $this->reply('-'.$domain,250);
                 $extra = $this->generateSMTPfeatures();
                 $output = array_merge($output,$extra);
-                $this->emailEhlo = $argument;
+                $this->emailHELO = $argument;
                 break;
             case 'MAIL FROM':
                 $output = $this->reply(false,250);
                 $this->addCommandSequence($command); // Important command, Add to sequence array
+                if ( $argument ) {
+                    $this->emailFrom = $argument;
+                }
                 break;
             case 'RCPT TO':
                 $output = $this->reply(false,250);
                 $this->addCommandSequence($command); // Important command, Add to sequence array
+                if ( $argument ) {
+                    $this->emailRCPT[] = $argument;
+                }
                 break;
             case 'DATA':
                 $this->addCommandSequence($command); // Important command, Add to sequence array
@@ -324,6 +389,11 @@ class SMTPHoneypot {
         if ($command) $this->logger->logDebugMessage("[smtp] ".$commandSeen." command(s) parsed");
 
         return $output;
+    }
+
+    // fucntion to handle closing connection to early
+    public function closeConnection() {
+        return $this->reply(false,421);
     }
 
     // Handle SMTP Honeypot

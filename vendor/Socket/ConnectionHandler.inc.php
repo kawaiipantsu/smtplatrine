@@ -60,11 +60,12 @@ class connectionHandler {
         // Load up SMTP Honeypot functionaility
         $smtp = new \Controller\SMTPHoneypot;
         // If db return false, close connection with log message
-        if ( $db === false ) {
+        if ( !$db->isConfigLoaded() ) {
             $client->send($smtp->sendBanner());
-            $client->send($smtp->sendError('421 Service not available, closing transmission channel'));
-            $client->close();
+            $client->send($smtp->closeConnection());
             $this->logger->logErrorMessage('['.$client->getAddress().'] Database connection failed, closing connection');
+            $client->close();
+            $this->logger->logMessage("[".$client->getAddress()."] Disconnected");
             return false;
         }
         
@@ -85,6 +86,10 @@ class connectionHandler {
                         // Detect if mail was "simulated" and close connection
                         if ( preg_match('/^250 Ok: queued as /i',$dataStatus) ) {
                             $this->logger->logMessage("[".$client->getAddress()."] Successfully queued mail for relaying");
+                            $eml = trim($smtp->getEmailEML());
+                            $eml = str_replace('%%CLIENTIP%%',$client->getAddress(),$eml);
+                            $eml = str_replace('%%CLIENTIPREVERSE%%',gethostbyaddr($client->getAddress()),$eml);
+                            print("----\n".trim($eml)."\n----\n");
                         }
                     }
                 } else {

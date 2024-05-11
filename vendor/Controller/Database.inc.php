@@ -15,9 +15,6 @@ class Database {
         // Load config if not already loaded
         if ( $this->config === false ) {
             $this->config = $this->loadConfig();
-            if ( $this->config === false ) {
-                return false;
-            }
         }
     }
 
@@ -26,9 +23,18 @@ class Database {
         $this->db = null;
     }
 
+    // Check if we could load config
+    public function isConfigLoaded() {
+        if ( $this->config === false ) {
+            return false;
+        } else {
+            return true;
+        }
+    }
+
     // Load config file from etc
     private function loadConfig() {
-        if ( is_file(__DIR__ . '/../../etc/testdatabase.ini') ) {
+        if ( is_file(__DIR__ . '/../../etc/database.ini') === false ) {
             $this->logger->logErrorMessage('Can\'t open etc/database.ini file, not able to handle connections!');
             return false;
         } else {
