@@ -1,0 +1,34 @@
+# telnet mail.example.com 25
+Trying 192.0.2.10...
+Connected to mail.example.com.
+Escape character is '^]'.
+
+220 mail.example.com ESMTP Postfix (Debian/GNU)
+EHLO test.example.com
+250-mail.example.com
+250-PIPELINING
+250-SIZE 30720000
+250-VRFY
+250-ETRN
+250-STARTTLS
+250-AUTH LOGIN DIGEST-MD5 PLAIN CRAM-MD5
+250-AUTH=LOGIN DIGEST-MD5 PLAIN CRAM-MD5
+250-ENHANCEDSTATUSCODES
+250-8BITMIME
+250 DSN
+MAIL FROM:<test@example.com>
+250 2.1.0 Ok
+RCPT TO:<user@example.com>
+250 2.1.5 Ok
+DATA
+354 End data with <CR><LF>.<CR><LF>
+Subject: Testmessage
+
+This is a test.
+
+.
+250 2.0.0 Ok: queued as 83398728027
+QUIT
+221 2.0.0 Bye
+
+Connection closed by foreign host.

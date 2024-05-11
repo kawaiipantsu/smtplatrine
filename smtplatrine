@@ -1,0 +1,45 @@
+#!/usr/bin/env php
+<?PHP
+/*************************************************************
+*                  _         _       _        _
+*    ___ _ __ ___ | |_ _ __ | | __ _| |_ _ __(_)_ __   ___
+*   / __| '_ ` _ \| __| '_ \| |/ _` | __| '__| | '_ \ / _ \
+*   \__ \ | | | | | |_| |_) | | (_| | |_| |  | | | | |  __/
+*   |___/_| |_| |_|\__| .__/|_|\__,_|\__|_|  |_|_| |_|\___|
+*                     |_|               _____
+*                                 ||    |   D
+*   A custom SMTP Honeypot        ||    |   |
+*   written in PHP with focus     ||    |   |
+*   on gathering intel on threat  ||    \___|             _
+*   actors and for doing spam     ||      | |  _______  -( (-
+*   forensic work                 ||      |__'(-------)  '-'
+*                                 ||          |       /
+*  (c) 2024 - THUGSred            ||     ___,-\__..__|__
+*
+*  Peanut Butter Jelly Time!
+*
+*  https://github.com/kawaiipantsu/smtplatrine
+*/
+
+// Set application name
+cli_set_process_title("smtplatrine");
+
+// Try using my makeshift autoloader ...
+// This is junk, but it works for now.
+require_once 'vendor/autoload.php';
+
+// Setup logging for the main application
+$logger = new \Controller\Logger(basename(__FILE__,'.php'),__NAMESPACE__);
+$logger->enableDisplay();
+$logger->enableReporting(E_ALL);
+
+// Send application loading log
+$logger->logMessage("Started SMTPLATRINE - A custom SMTP-Honeypot written in PHP");
+
+// Setup the TCP server and SMTP honeypot
+$smtpServer = new \Socket\Server;
+$smtpServer->start();
+$smtpServer->setConnectionHandler('\Socket\ConnectionHandler');
+$smtpServer->listen();
+
+?>
