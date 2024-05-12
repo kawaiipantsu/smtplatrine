@@ -5,14 +5,19 @@ class connectionHandler {
     
     protected $socket = false;
     protected $pid;
+    protected $run;
+
     private $logger;
     private $config = false;
     private $srvPort = false;
     private $srvAddress = false;
+
+    private $otherProcesses = array();
+    private $maxClients = 0;
     
     // Constructor
-    public function __construct( $socket ) {
-        
+    public function __construct( $socket, $otherProcesses ) {
+
         // Setup vendor logger
         $this->logger = new \Controller\Logger(basename(__FILE__,'.inc.php'),__NAMESPACE__);
 
@@ -20,6 +25,9 @@ class connectionHandler {
         if ( $this->config === false ) {
             $this->config = $this->loadConfig();
         }
+
+        // Get max connections allowed from protection
+		$this->maxClients = array_key_Exists("protection_max_connections",$this->config['protection']) ? intval($this->config['protection']['protection_max_connections']) : 10;
 
         // Set socket
         $this->socket = $socket;
@@ -31,8 +39,28 @@ class connectionHandler {
         } else if ( $pid ) {
             // Parent process
             $this->pid = $pid;
+            
+            
+            
         } else {
             // Child process
+            
+            // Check if we need to use non-previleged UID/GID
+            $non_privileged = trim($this->config['server']['server_spawn_clients_as_non_privileged']) == "1" ? true : false;
+            if ( $non_privileged ) {
+                $_uid = posix_getpwnam($this->config['non_privileged']['non_privileged_user']);
+                $_gid = posix_getgrnam($this->config['non_privileged']['non_privileged_group']);
+                if ( $_uid && $_gid ) {
+                    posix_setgid($_gid['gid']);
+                    posix_setuid($_uid['uid']);
+                    $this->logger->logMessage('[client] Non-privileged mode (UID:'.$_uid['uid'].' GID:'.$_gid['gid'].')','INFO');
+                } else {
+                    $this->logger->logMessage('Could not set UID/GID for non-privileged user/group for connecting clients','ERROR');
+                    $this->logger->logMessage('Please note that we are still running but as root!','WARNING');
+                }
+            }
+
+            $this->otherProcesses = $otherProcesses;
             cli_set_process_title("smtplatrine-connectionhandler");
             $this->handle();
             exit(0);
@@ -48,11 +76,16 @@ class connectionHandler {
     public function __destruct() {
         // Nothing to do
     }
-    
+
     // Load config file from etc
     private function loadConfig() {
         $config = parse_ini_file(__DIR__ . '/../../etc/server.ini',true);
         return $config;
+    }
+
+    // Get PID of child process
+    public function getPID() {
+        return $this->pid;
     }
 
     // Handle connection
@@ -67,13 +100,26 @@ class connectionHandler {
 
         // Load up SMTP Honeypot functionaility
         $smtp = new \Controller\SMTPHoneypot;
+
+        // If we have more than 2 processes, close connection with log message
+        if ( count($this->otherProcesses) >= $this->maxClients ) {
+            $client->send($smtp->sendBanner());
+            $client->send($smtp->closeConnectionToManyConnections());
+            $this->logger->logErrorMessage('[server] Too many connections, closing connection');
+            $client->close();
+            $this->logger->logMessage("[".$client->getPeerAddress()."] Disconnected");
+            return false;
+        }
+
+
+
         // If db return false, close connection with log message
         if ( !$db->isConfigLoaded() ) {
             $client->send($smtp->sendBanner());
             $client->send($smtp->closeConnection());
-            $this->logger->logErrorMessage('['.$client->getAddress().'] Database connection failed, closing connection');
+            $this->logger->logErrorMessage('['.$client->getPeerAddress().'] Database connection failed, closing connection');
             $client->close();
-            $this->logger->logMessage("[".$client->getAddress()."] Disconnected");
+            $this->logger->logMessage("[".$client->getPeerAddress()."] Disconnected");
             return false;
         }
         

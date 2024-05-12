@@ -24,9 +24,6 @@
 // Allow the script to hang around waiting for connections
 set_time_limit(0);
 
-// Flush buffers
-ob_implicit_flush();
-
 // Set application name
 cli_set_process_title("smtplatrine");
 
@@ -34,12 +31,27 @@ cli_set_process_title("smtplatrine");
 // This is junk, but it works for now.
 require_once 'vendor/autoload.php';
 
+// Setup signal handling
+$signalHandler = new \Controller\Signals();
+pcntl_async_signals(true);
+// Handle ^C in terminal etc
+pcntl_signal(SIGINT, [$signalHandler, 'doSIGINT']);
+// Handle kill (Terminated) signal
+pcntl_signal(SIGTERM, [$signalHandler, 'doSIGTERM']);
+pcntl_signal(SIGQUIT, [$signalHandler, 'doSIGTERM']);
+// Handle hup signal
+pcntl_signal(SIGHUP, [$signalHandler, 'doSIGHUP']);
+// This is Magic sauce, we ignore the signal from child processes
+// This eliminates the need for a signal handler in the parent process
+// And we will have no hanging zombie processes!
+pcntl_signal(SIGCHLD, SIG_IGN);
+
 // Setup logging for the main application
 $logger = new \Controller\Logger(basename(__FILE__,'.php'),__NAMESPACE__);
 $logger->enableDisplay();
 $logger->enableReporting(E_ALL);
 
-// Send application loading log
+// Send application STARTED log
 $logger->logMessage("Started SMTPLATRINE - A custom SMTP-Honeypot written in PHP");
 
 // Setup the TCP server and SMTP honeypot
@@ -48,4 +60,6 @@ $smtpServer->start();
 $smtpServer->setConnectionHandler('\Socket\ConnectionHandler');
 $smtpServer->listen();
 
+// Send application ENDED log
+$logger->logMessage("SMTPLATRINE Shutdown - Goodbye!");
 ?>

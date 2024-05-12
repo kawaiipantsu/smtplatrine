@@ -32,6 +32,9 @@ class SMTPHoneypot {
     private $emailFrom = false;
     private $emailRCPT = array();
 
+    // Uniqe identifier for email/attachment
+    private $emailUID = false;
+
     private $emailEML = '';
     
     // Constructor
@@ -44,6 +47,9 @@ class SMTPHoneypot {
             $this->config = $this->loadConfig();
         }
 
+        // Generate email UID for use in this session
+        $this->emailUID = $this->generateUUID4();
+
         // Reset smtpCommands array
         $this->smtpCommands = array();
     }
@@ -52,11 +58,19 @@ class SMTPHoneypot {
     public function __destruct() {
         // Nothing to do
     }
-    
+
     // Load config file from etc
     private function loadConfig() {
         $config = parse_ini_file(__DIR__ . '/../../etc/server.ini',true);
         return $config;
+    }
+
+    // Private function to generate uuid version 4
+    private function generateUUID4() {
+        $data = random_bytes(16);
+        $data[6] = chr(ord($data[6]) & 0x0f | 0x40); // set version to 0100
+        $data[8] = chr(ord($data[8]) & 0x3f | 0x80); // set bits 6-7 to 10
+        return vsprintf('%s%s-%s-%s-%s-%s%s%s', str_split(bin2hex($data), 4));
     }
 
     // Get and Set for smtpDATAmode
@@ -414,6 +428,11 @@ class SMTPHoneypot {
     // fucntion to handle closing connection to early
     public function closeConnection() {
         return $this->reply(false,421);
+    }
+
+    // fucntion to handle closing connection to early
+    public function closeConnectionToManyConnections() {
+        return $this->reply(" Sorry i'm to busy to handle more connections",421);
     }
 
     // Handle SMTP Honeypot
