@@ -6,6 +6,7 @@ class Logger {
     public $loggerEnabled = false;
     public $lastError;
     private $config = false;
+    private $config_server = false;
     private $logName = 'logger';
     private $namespace = __NAMESPACE__;
     private $fullName = false;
@@ -34,6 +35,7 @@ class Logger {
         // Load config if not loaded
         if ( $this->config === false ) {
             $this->config = $this->loadConfig();
+            $this->config_server = $this->loadConfigServer();
         }
 
         // If logger is disabled set state
@@ -59,7 +61,8 @@ class Logger {
         $this->logDebugMessage("[logger] Vendor ".$this->namespace." log level set: ".$vendor_log_level);
 
         // Set the new log level
-        $this->disableDisplay();
+        $this->enableDisplay();
+        //$this->disableDisplay();
 
         // Build int from constants
         $level_constants = explode('|', $vendor_log_level);
@@ -75,6 +78,21 @@ class Logger {
     // Destructor
     public function __destruct() {
         // Nothing to do
+    }
+
+    // Set chmod of log file
+    private function setLogChmod($file, $chmod=0664) {
+        if ( file_exists($file) ) {
+            chmod($file, $chmod);
+        }
+    }
+
+    // Set chown of log file
+    private function setLogChown($file, $user, $group) {
+        if ( file_exists($file) ) {
+            chown($file, $user);
+            chgrp($file, $group);
+        }
     }
 
     // Main log entry function that calls the appropriate log function based on the config
@@ -114,7 +132,8 @@ class Logger {
 
     // Log to file
     private function logToFile($entry, $level='INFO') {
-        
+        $old = umask(0);
+
         // Switch case to set level
         switch ( strtolower(trim($level)) ) {
             case 'info':
@@ -153,7 +172,19 @@ class Logger {
         // check if path ends with backslash
         if ( substr($path, -1) != '/' ) $path .= '/';
         // Create log directory if not exists
-        if ( !is_dir($path) ) mkdir($path, 0755, true);
+        if ( !is_dir($path) ) mkdir($path, 0775, true);
+        
+        $non_privileged = trim($this->config_server['server']['server_spawn_clients_as_non_privileged']) == "1" ? true : false;
+        if ( $non_privileged ) {
+            $_uid = posix_getpwnam($this->config_server['non_privileged']['non_privileged_user']);
+            $_gid = posix_getgrnam($this->config_server['non_privileged']['non_privileged_group']);
+            if ( $_uid && $_gid ) {
+                $this->setLogChown($path, $_uid['uid'], 0);
+            }
+        }
+
+        // Set umask so we create files as 664
+        umask(0002);
 
         // Open log file and write entry (main)
         $fh = fopen($path.$file, 'a');
@@ -175,6 +206,20 @@ class Logger {
             fwrite($fh, $logEntry);
             fclose($fh);
         }
+
+        if ( $non_privileged ) {
+            $_uid = posix_getpwnam($this->config_server['non_privileged']['non_privileged_user']);
+            $_gid = posix_getgrnam($this->config_server['non_privileged']['non_privileged_group']);
+            if ( $_uid && $_gid ) {
+                $this->setLogChown($path.$file, $_uid['uid'], 0);
+                $this->setLogChown($path.$file_error, $_uid['uid'], 0);
+                $this->setLogChown($path.$file_debug, $_uid['uid'], 0);
+            }
+        }
+
+        // Restore old umask
+        umask($old);
+
     }
 
     // Log to syslog
@@ -278,6 +323,12 @@ class Logger {
     // Load config file from etc
     private function loadConfig() {
         $config = parse_ini_file(__DIR__ . '/../../etc/logger.ini',true);
+        return $config;
+    }
+
+    // Load config file from etc
+    private function loadConfigServer() {
+        $config = parse_ini_file(__DIR__ . '/../../etc/server.ini',true);
         return $config;
     }
 

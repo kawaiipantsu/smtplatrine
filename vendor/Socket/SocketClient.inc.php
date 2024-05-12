@@ -37,7 +37,7 @@ class SocketClient {
         $this->peerport = $peerport;
         
         $this->connection = $connection;
-        
+
     }
 
     // Destructor
