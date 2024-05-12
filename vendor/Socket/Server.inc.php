@@ -35,7 +35,6 @@ class Server {
 	// Destructor
 	public function __destruct() {
 		socket_close($this->server);
-		$this->logger->logMessage('[server] Stopped listening on ' . $this->address . ':' . $this->port);
 	}
 
 	// Load config file from etc

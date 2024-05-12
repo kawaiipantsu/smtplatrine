@@ -1,6 +1,6 @@
 <?PHP
 
-namespace Controller;
+namespace Utils;
 
 class Signals {
 
@@ -21,22 +21,27 @@ class Signals {
     public function doSIGINT($signo) {
         // LEt's just inform the logs that we are closing down
         $this->logger->logMessage('Caught SIGINT, shutting down now!', 'WARNING');
+        $this->logger->logMessage('[server] Stopped listening for connections');
+        $this->logger->logMessage('[server] EXIT=0');
+        $this->logger->logMessage(">>> SMTPLATRINE - Goodbye!");
         // Clean exit
         exit(0);
     }
 
     // Handler for SIGTERM
     public function doSIGTERM($signo) {
-        // LEt's just inform the logs that we are closing down
-        $logger->logMessage("SMTPLATRINE Shutdown - Goodbye!");
+        // Let's just inform the logs that we are closing down
+        $this->logger->logMessage('[server] Stopped listening for connections');
+        $this->logger->logMessage('[server] EXIT=0');
+        $this->logger->logMessage(">>> SMTPLATRINE - Goodbye!");
         // Clean exit
         exit(0);
     }
 
     // Handler for SIGHUB
     public function doSIGHUP($signo) {
-        // LEt's just inform the logs that we are closing down
-        $logger->logMessage("SMTPLATRINE NOOP - Ignoring SIGHUP");
+        // Let's just inform the logs that we are closing down
+        $this->logger->logMessage(">>> SMTPLATRINE NOOP - Ignoring SIGHUP");
     }
 
 }
