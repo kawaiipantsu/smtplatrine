@@ -7,7 +7,8 @@ class EmailParser {
     private $logger;
     private $config = false;
     private $canParse = false;
-    
+    private $hasResult = false;
+
     protected $mimeObject = false;
 
     private $mimeStructure = array();
@@ -52,11 +53,13 @@ class EmailParser {
             // Using PHP extentions Mailparse
             $this->mimeObject = mailparse_msg_create();
             if ( mailparse_msg_parse($this->mimeObject,$rawmail) ) {
-                $this->logger->logMessage('[EmailParser] Email parsed successfully!');
+                $this->logger->logDebugMessage('[EmailParser] Beginning to parse email eml');
                 $this->mimeStructure = mailparse_msg_get_structure($this->mimeObject);
                 $this->mimeData = mailparse_msg_get_part_data($this->mimeObject);
                 $this->headers = $this->mimeData['headers'];
                 unset($this->mimeData['headers']);
+
+                $this->logger->logMessage('[EmailParser] Email (eml) parsed successfully!');
 
                 // Run though all mime Sections besides 1
                 foreach ($this->mimeStructure as $structurePart) {
@@ -77,6 +80,7 @@ class EmailParser {
 
                     // If Attachment
                     if ( isset($part_data['content-disposition']) && $part_data['content-disposition'] == 'attachment' ) {
+
                         // Extract filename from content-disponition or content-name, and store in attachments array
                         $filename = "";
                         if ( isset($part_data['disposition-filename']) ) {
@@ -85,21 +89,39 @@ class EmailParser {
                             $filename = $part_data['content-name'];
                         }
                         $fileUUIDv4 = $this->generateUUID4();
+                        $attachmentData = mailparse_msg_extract_part($part, $rawmail, null);
+                        $attachmentSize = strlen($attachmentData);
                         $this->attachments[] = array(
                             "uuid" => $fileUUIDv4,
                             "filename" => $filename,
-                            "size" => $part_data['content-length']
+                            "type" => $part_data['content-type'],
+                            "size" => $attachmentSize
                         );
                         // If we oped in to save the actual data, do so!
-                        /*
                         $saveAttachment = trim($this->config['smtp']['smtp_attachments_store']) == "1" ? true : false;
                         if ( $saveAttachment ) {
-                            $attachmentData = mailparse_msg_extract_part($part, $rawmail, null);
-                            $this->saveAttachment($fileUUIDv4,$attachmentData);
-                        }
-                        */
-                    }
+                            $clientip = $this->headers['x-latrine-client-ip'];
+                            $clientipMD5 = $clientip;
+                            $type = trim($part_data['content-type']);
+                            // Make type safe for directory on linux
+                            $type = str_replace('/','_',$type);
+                            $type = str_replace(';','_',$type);
+                            $type = str_replace('+','_',$type);
+                            $type = str_replace(' ','_',$type);
+                            $type = str_replace('-','_',$type);
+                            $type = str_replace('.','_',$type);
 
+                            // Major chars seen in content mime types, if we have more than A-Z and _ then set static content type
+                            // This is the simplest way to combat directory traversal attacks and other things, don't have time
+                            // to sanitize everything, just cut it short and set to unknown for the rest. Still should be getting
+                            // most of the content types.
+
+                            if ( !preg_match('/^[A-Z0-9_]+$/i',$type) ) $type = "unknown";
+
+                            $this->saveAttachment($type.'/'.$clientip.'/'.$fileUUIDv4,$attachmentData);
+                        }
+                    }
+                    $this->hasResult = true;
                 }
             } else {
                 $this->logger->logErrorMessage('[EmailParser] Could not parse email! Something went wrong ...');
@@ -122,28 +144,27 @@ class EmailParser {
     }
 
     // Private function to save the attachment to disk
-    private function saveAttachment($filename,$data) {
+    private function saveAttachment($partFilename,$data) {
         $attachmentPath = $this->config['smtp']['smtp_attachments_path'];
         // Check if path is absolute
         if ( substr($attachmentPath, 0, 1) != '/' ) $attachmentPath = __DIR__ . '/../../' . $attachmentPath;
         // check if path ends with backslash
         if ( substr($attachmentPath, -1) != '/' ) $attachmentPath .= '/';
-        // Create log directory if not exists
-        if ( !is_dir($attachmentPath) ) mkdir($paattachmentPathth, 0775, true);
+        // Create attachment directory if not exists
+        if ( !is_dir($attachmentPath) ) mkdir($attachmentPath, 0775, true);
 
-        // Remember that if we run in non-privileged mode, we need to make sure to always
-        // pay attention to the user/group permissions for the files we create
+        // Bow get full path and filename
+        $fullFilename = $attachmentPath.$partFilename;
+        $fullPath = pathinfo($fullFilename, PATHINFO_DIRNAME);
 
-        // Check if we can write to the directory
-        if ( !is_writable($attachmentPath) ) {
-            $this->logger->logErrorMessage('[EmailParser] Attachment path is not writable! Cannot save attachment!');
-        } else {
-            $attachmentFile = $attachmentPath.$filename;
-            $attachmentFileHandle = fopen($attachmentFile, "w");
-            fwrite($attachmentFileHandle, $data);
-            fclose($attachmentFileHandle);
-            $this->logger->logMessage('[EmailParser] Attachment saved to disk: '.$attachmentFile);
-        }
+        // Create any subdirectory if not exists
+        if ( !is_dir($fullPath) ) mkdir($fullPath, 0775, true);
+
+        // Write the actual data to disk
+        $attachmentFileHandle = fopen($fullFilename, "w");
+        fwrite($attachmentFileHandle, $data);
+        fclose($attachmentFileHandle);
+        $this->logger->logMessage('[EmailParser] Attachment saved to disk: '.$partFilename);
 
     }
 
@@ -157,6 +178,7 @@ class EmailParser {
 
     // Function that return array of details on all what we know so far
     public function getParsedResult() {
+        if ( !$this->hasResult ) return false;
         $result = array();
         $result["mime"] = array(
             "mimeData" => $this->mimeData,
@@ -167,7 +189,7 @@ class EmailParser {
         $result["body"]["html"] = $this->bodyHTML;
         $result["body"]["text"] = $this->bodyText;
 
-        return $details;
+        return $result;
     }
 
 

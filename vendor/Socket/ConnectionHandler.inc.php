@@ -166,7 +166,7 @@ class connectionHandler {
 
                             // Get the complete/finished email in a raw known EML data format
                             // EML = Electronic Mail Message
-                            $mailData = $smtp->getMailEML();
+                            $mailData = $smtp->getEmailEML();
 
                             // It's happend !
                             // Now let's parse the data and store it in the database for further analysis
@@ -228,7 +228,7 @@ class connectionHandler {
             
             // Check if read is null
             if ( $read === null ) {
-                $this->logger->logMessage("[".$client->getAddress()."] Disconnected");
+                $this->logger->logMessage("[".$client->getPeerAddress()."] Disconnected");
                 return false;
             }
         }
@@ -237,7 +237,7 @@ class connectionHandler {
         $client->close();
 
         // Log disconnect
-        $this->logger->logMessage("[".$client->getAddress()."] Lost connection");
+        $this->logger->logMessage("[".$client->getPeerAddress()."] Lost connection");
     }
 
     // Private function to handle end of connection
@@ -257,7 +257,7 @@ class connectionHandler {
         else {
 
             // Replace placeholders that need to be updated with client connection details
-            $data = str_replace('%%CLIENTIP%%',$client->getAddress(),$data);
+            $data = str_replace('%%CLIENTIP%%',$client->getPeerAddress(),$data);
             $data = str_replace('%%CLIENTIPREVERSE%%',gethostbyaddr($client->getPeerAddress()),$data);
             $data = str_replace('%%CLIENTPORT%%',$client->getPeerPort(),$data);
 
@@ -272,7 +272,10 @@ class connectionHandler {
             $result = $parser->getParsedResult();
 
             // for now debug the result
-            print_r($result);
+            if ($result) print_r($result);
+            else {
+                $this->logger->logErrorMessage('Something went wrong ???');
+            }
 
             // We could return data back to the handler() function,
             // but we want to keep it clean and only handle the result here

@@ -4,6 +4,9 @@ etc/database.ini
 etc/meta.ini
 # Logs files
 logs/*.log
+# Attachments
+attachments/*
+!attachments/README.md
 
 ##### Windows
 # Windows thumbnail cache files
