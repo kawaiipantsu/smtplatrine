@@ -32,7 +32,7 @@ cli_set_process_title("smtplatrine");
 require_once 'vendor/autoload.php';
 
 // Setup signal handling
-$signalHandler = new \Controller\Signals();
+$signalHandler = new \Utils\Signals();
 pcntl_async_signals(true);
 // Handle ^C in terminal etc
 pcntl_signal(SIGINT, [$signalHandler, 'doSIGINT']);
@@ -46,13 +46,62 @@ pcntl_signal(SIGHUP, [$signalHandler, 'doSIGHUP']);
 // And we will have no hanging zombie processes!
 pcntl_signal(SIGCHLD, SIG_IGN);
 
+// Get the user info, running this script
+$mainUserInfo = posix_getpwuid(posix_geteuid());
+
 // Setup logging for the main application
 $logger = new \Controller\Logger(basename(__FILE__,'.php'),__NAMESPACE__);
 $logger->enableDisplay();
 $logger->enableReporting(E_ALL);
 
 // Send application STARTED log
-$logger->logMessage("Started SMTPLATRINE - A custom SMTP-Honeypot written in PHP");
+$logger->logMessage(">>> SMTPLATRINE - A custom SMTP-Honeypot written in PHP :)");
+
+// Before we start, let's make some sanity checks that we nee to do as "root"
+// Check if we want to run clients in non-priviliged mode and if so do we have the right permissions
+$_config = parse_ini_file(__DIR__ . '/etc/server.ini',true);
+$non_privileged = trim($_config['server']['server_spawn_clients_as_non_privileged']) == "1" ? true : false;
+$nonPrivUser = $_config['non_privileged']['non_privileged_user'];
+$nonPrivGroup = $_config['non_privileged']['non_privileged_group'];
+$attachmentPath = $_config['smtp']['smtp_attachments_path'];
+$_config = parse_ini_file(__DIR__ . '/etc/logger.ini',true);
+$logPath = $_config['output_file']['output_file_path'];
+$logFileMain = $_config['output_file']['output_file_main'];
+$logFileError = $_config['output_file']['output_file_error'];
+$logFileDebug = $_config['output_file']['output_file_debug'];
+unset($_config);
+
+if ($non_privileged) {
+    // We require non-privileged user to be set for the connection handler
+    // Check if file permisions are set correctly
+
+    // Get UID and GID of the user and group
+    $_uid = posix_getpwnam($nonPrivUser);
+    $_gid = posix_getgrnam($nonPrivGroup);
+    if ( $_uid && $_gid ) {
+        $nonPrivGroupGID = $_gid['gid'];
+        $nonPrivUserUID = $_uid['uid'];
+        $logger->logMessage("[server] Permission check on ".$nonPrivUser."(".$nonPrivUserUID.") and group ".$nonPrivGroup."(".$nonPrivGroupGID.") for non-privileged mode");
+    } else {
+        $logger->logErrorMessage("[server] Unable to find user ".$nonPrivUser." or group ".$nonPrivGroup." for non-privileged mode");
+        exit(1);
+    }
+
+    // Log path
+    if ( substr($logPath, 0, 1) != '/' ) $logPath = __DIR__ . '/' . $logPath;
+    if ( substr($logPath, -1) != '/' ) $logPath .= '/';
+    // Attachments path
+    if ( substr($attachmentPath, 0, 1) != '/' ) $attachmentPath = __DIR__ . '/' . $attachmentPath;
+    if ( substr($attachmentPath, -1) != '/' ) $attachmentPath .= '/';
+
+    // Let's do the magic ...
+    $perms = new \Utils\Permissions();
+    $_res = $perms->isDirWriteable($logPath, $nonPrivUserUID, $nonPrivGroupGID);
+    if ( $_res === false ) {
+        $logger->logErrorMessage("[server] Log path ".$logPath." is not writeable by ".$nonPrivUser."(".$nonPrivUserUID.") or group ".$nonPrivGroup."(".$nonPrivGroupGID.")");
+        exit(1);
+    }
+}
 
 // Setup the TCP server and SMTP honeypot
 $smtpServer = new \Socket\Server;
@@ -61,5 +110,5 @@ $smtpServer->setConnectionHandler('\Socket\ConnectionHandler');
 $smtpServer->listen();
 
 // Send application ENDED log
-$logger->logMessage("SMTPLATRINE Shutdown - Goodbye!");
+$logger->logMessage(">>> SMTPLATRINE - Goodbye!");
 ?>

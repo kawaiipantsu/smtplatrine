@@ -32,9 +32,6 @@ class SMTPHoneypot {
     private $emailFrom = false;
     private $emailRCPT = array();
 
-    // Uniqe identifier for email/attachment
-    private $emailUID = false;
-
     private $emailEML = '';
     
     // Constructor
@@ -46,9 +43,6 @@ class SMTPHoneypot {
         if ( $this->config === false ) {
             $this->config = $this->loadConfig();
         }
-
-        // Generate email UID for use in this session
-        $this->emailUID = $this->generateUUID4();
 
         // Reset smtpCommands array
         $this->smtpCommands = array();
@@ -63,14 +57,6 @@ class SMTPHoneypot {
     private function loadConfig() {
         $config = parse_ini_file(__DIR__ . '/../../etc/server.ini',true);
         return $config;
-    }
-
-    // Private function to generate uuid version 4
-    private function generateUUID4() {
-        $data = random_bytes(16);
-        $data[6] = chr(ord($data[6]) & 0x0f | 0x40); // set version to 0100
-        $data[8] = chr(ord($data[8]) & 0x3f | 0x80); // set bits 6-7 to 10
-        return vsprintf('%s%s-%s-%s-%s-%s%s%s', str_split(bin2hex($data), 4));
     }
 
     // Get and Set for smtpDATAmode
@@ -156,11 +142,6 @@ class SMTPHoneypot {
 
         // Create the actual EML body from DATA
         $this->emailEML .= $this->emailData."\r\n";
-    }
-
-    // Get email EML
-    public function getEmailEML() {
-        return $this->emailEML;
     }
 
     // SMTP compliant check order of command sequence
@@ -290,12 +271,23 @@ class SMTPHoneypot {
             // Build email data
             $this->addEmailData($data);
         }
-        return false; // We do this to continue the loop
+        return false; // We do this to continue the loop and continue to accept DATA
     }
 
-    // Get email DATA
-    public function getEmailData() {
-        return $this->emailData;
+    // Get email DATA (EML format)
+    public function getEmailEML() {
+        // Note:
+        // The final chunk of data is supposed to end with a newline (CRLF);
+        // otherwise the last line of the message will not be parsed by many EML/MIME parsers.
+
+        // First trim the email data, to make sure we don't have any trailing whitespace
+        $this->emailEML = trim($this->emailEML);
+
+        // And then finally add a newline to the end of the email data as required
+        $this->emailEML .= "\r\n";
+
+        // Return email data
+        return $this->emailEML;
     }
 
     // Parse SMTP Command

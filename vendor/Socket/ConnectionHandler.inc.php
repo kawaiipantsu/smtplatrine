@@ -62,6 +62,8 @@ class connectionHandler {
 
             $this->otherProcesses = $otherProcesses;
             cli_set_process_title("smtplatrine-connectionhandler");
+
+            // Handle connection socket data
             $this->handle();
             exit(0);
         }
@@ -90,6 +92,9 @@ class connectionHandler {
 
     // Handle connection
     public function handle() {
+        // Get the user info, running this script
+        $handleUserInfo = posix_getpwuid(posix_geteuid());
+
         $client = $this->socket;
         $read = '';
 
@@ -132,39 +137,86 @@ class connectionHandler {
 
             // Check if buffer is empty else parse data
             if ( $read != '' ) {
-                // SMTP DATA mode
+
+                // THIS IS THE MAIN LOOP TO PROESS INCOMING DATA
+                // As this is a SMTP Honeypot, we shift to a mixture of SMTP and DATA mode
+                // Also remember the SMTP protocol, even if we are "done" and recieve a mail
+                // to emulate sending, the connetion will still be alive until the client 
+                // sends a QUIT command!
+
+                // Controle - Check if we are inside SMTP DATA mode
                 if ( $smtp->getSMTPDATAmode() ) {
+
+                    // Since this should be DATA, parse it as such!
+                    // As long as we are in DATA mode, we will keep parsing the data by returning "false"
                     $dataStatus = $smtp->parseData($read);
+
+                    // We recieved output from the DATA parser, meaning we are either done or have an error
                     if ( $dataStatus ) {
+
+                        // Send the reply back to the client connected
                         $client->send($dataStatus);
-                        // Detect if mail was "simulated" and close connection
+
+                        // Detect if the holy grail happened - That someone actually tried to relay mail and we got a 250 OK
+                        // This is a honeypot gratest moment, any security hunter would be proud of this moment :D
                         if ( preg_match('/^250 Ok: queued as /i',$dataStatus) ) {
-                            $this->logger->logMessage("[".$client->getAddress()."] Successfully queued mail for relaying");
-                            $eml = trim($smtp->getEmailEML());
-                            $eml = str_replace('%%CLIENTIP%%',$client->getAddress(),$eml);
-                            $eml = str_replace('%%CLIENTIPREVERSE%%',gethostbyaddr($client->getAddress()),$eml);
-                            $eml = str_replace('%%CLIENTPORT%%',$client->getPeerPort(),$eml);
-                            $eml .= "\n\r";
-                            // Send raw email to EmailParser
-                            $email = new \Controller\EmailParser($eml);
-                            print_r($email->getMailDetails());
+
+                            // Log that things went successful
+                            $this->logger->logMessage("[".$client->getPeerAddress()."] Successfully queued mail for relaying");
+
+                            // Get the complete/finished email in a raw known EML data format
+                            // EML = Electronic Mail Message
+                            $mailData = $smtp->getEmailEML();
+
+                            // It's happend !
+                            // Now let's parse the data and store it in the database for further analysis
+                            // Time to reep the rewards of our honeypot!
+                            $result = $this->handleResult($client, $mailData);
+
+                            // HONEYPOT SESSION IS ACTUALLY OVER AT THIS POINT!
+                            // But we are still technically waiting for the client to send a QUIT command
+
                         }
+
                     }
                 } else {
+
+                    // Since we are NOT in the DATA mode, we are in regular SMTP command mode
+                    // So let's parse what ever the client connected inputs and simulate SMTP commands responses
+                    // The command line interpeter will always return a reply to the client!
                     $response = $smtp->parseCommand($read);
+
+                    // Based on what the client sent, we can now send a reply back to the client
                     if ( $response ) {
+
+                        // Little trick to handle multiple responses, ie. if the SMTP protocol
+                        // reuiqres us to send multiple consecutive responses
                         if ( is_array($response) ) {
+
+                            // Send multiple responses to client
                             foreach( $response as $r ) {
                                 $client->send($r);
                             }
+
                         } else {
+
+                            // Send single reponse to client
                             $client->send($response);
+                        
                         }
 
                         // Handle SMTP QUIT command
+                        // We have this very nice public variable to check what ever the last
+                        // SMTP command we processed was, so we can act on it
                         if ( $smtp->smtpLastCommand == 'QUIT' ) {
-                            $client->close();
-                            $this->logger->logMessage("[".$client->getAddress()."] Closed connection (QUIT)");
+                            // Log what is going to happen
+                            $this->logger->logMessage("[".$client->getPeerAddress()."] Client sent QUIT command, closing connection");
+
+                            // Handle end of connection
+                            $this->handleEnd($client);
+
+                            // End the connectionHandler handle() function
+                            $this->logger->logMessage("[".$client->getPeerAddress()."] Closed connection (QUIT)");
                             return false;
                         }
 
@@ -176,7 +228,7 @@ class connectionHandler {
             
             // Check if read is null
             if ( $read === null ) {
-                $this->logger->logMessage("[".$client->getAddress()."] Disconnected");
+                $this->logger->logMessage("[".$client->getPeerAddress()."] Disconnected");
                 return false;
             }
         }
@@ -185,6 +237,52 @@ class connectionHandler {
         $client->close();
 
         // Log disconnect
-        $this->logger->logMessage("[".$client->getAddress()."] Lost connection");
+        $this->logger->logMessage("[".$client->getPeerAddress()."] Lost connection");
     }
+
+    // Private function to handle end of connection
+    private function handleEnd( $client, $data=false) {
+        
+        // This could be done via the handle() function, but we want to keep it clean
+        // so anything else needed to gracefully end a client connection is done here
+        if ( $data ) $client->send( $data );
+        $client->close();
+                            
+    }
+
+    // Private function to handle data end result
+    private function handleResult( $client, $data=false ) {
+        
+        if ( $data === false ) return false;
+        else {
+
+            // Replace placeholders that need to be updated with client connection details
+            $data = str_replace('%%CLIENTIP%%',$client->getPeerAddress(),$data);
+            $data = str_replace('%%CLIENTIPREVERSE%%',gethostbyaddr($client->getPeerAddress()),$data);
+            $data = str_replace('%%CLIENTPORT%%',$client->getPeerPort(),$data);
+
+            // Prepare our Email parser for EML data
+            // This will parse the email and make it ready for storage in the database
+            // This will also handle attachments (blob) data directly and store to disk if needed
+            // The parsed result will only ever contain the actual file names for the attachments
+            // To actually save the attachments, please opt-in to save the actual data in server.ini:
+            // smtp_attachments_store = true
+
+            $parser = new \Controller\EmailParser($data,"eml");
+            $result = $parser->getParsedResult();
+
+            // for now debug the result
+            if ($result) print_r($result);
+            else {
+                $this->logger->logErrorMessage('Something went wrong ???');
+            }
+
+            // We could return data back to the handler() function,
+            // but we want to keep it clean and only handle the result here
+            return true;
+
+        }
+        
+    }
+
 }
