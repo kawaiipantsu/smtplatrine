@@ -447,7 +447,7 @@ class SMTPHoneypot {
                 if ( count($this->smtpCommandsSequence) < 1  && $command == "GET" ) $output = $this->reply(" Error: I can break rules, too. Goodbye.",503);
                 else if ( count($this->smtpCommandsSequence) < 1  && $command == "MAIL" ) $output = $this->reply(" Error: I can break rules, too. Goodbye.",503);
                 else if ( count($this->smtpCommandsSequence) < 1  && $command == "RCPT" ) $output = $this->reply(" Error: I can break rules, too. Goodbye.",503);
-                else if ( count($this->smtpCommandsSequence) < 1 ) $output = $this->reply(" Error: send HELO/EHLO first",503);
+                else if ( count($this->smtpCommandsSequence) < 1 ) $output = $this->reply(" Error: Send HELO/EHLO first.",503);
                 else $output = $this->reply(false,503);
             }
         }
@@ -466,7 +466,7 @@ class SMTPHoneypot {
 
     // fucntion to handle closing connection to early
     public function closeConnectionToManyConnections() {
-        return $this->reply(" Sorry i'm to busy to handle more connections",421);
+        return $this->reply(" Sorry i'm to busy to handle more connections. Goodbye.",421);
     }
 
     // Handle SMTP Honeypot
