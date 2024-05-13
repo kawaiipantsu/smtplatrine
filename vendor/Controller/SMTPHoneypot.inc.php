@@ -18,8 +18,9 @@ class SMTPHoneypot {
         'RSET',
         'NOOP',
         'QUIT',
-        'GET',
-        'HELP'
+        'VRFY',
+        'EXPN',
+        'GET'
     );
     private $smtpCommands = array();
     private $smtpCommandsSequence = array();
