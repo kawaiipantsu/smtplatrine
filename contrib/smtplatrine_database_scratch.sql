@@ -18,6 +18,10 @@
 -- PLEASE NOTE THIS IS DESTRUCTIVE !!!! USING DROP TABLES !!
 -- ONLY USE THIS FILE IF YOU WANT TO RECREATE THE DATABASE
 -- ---------------------------------------------------------------
+-- Server version:               10.11.3-MariaDB-1-log - Debian 12
+-- Server OS:                    debian-linux-gnu
+-- HeidiSQL Version:             12.7.0.6850
+-- ---------------------------------------------------------------
 
 /*!40101 SET @OLD_CHARACTER_SET_CLIENT=@@CHARACTER_SET_CLIENT */;
 /*!40101 SET NAMES utf8 */;
@@ -227,16 +231,16 @@ CREATE TABLE IF NOT EXISTS `meta_virustotal` (
 -- Dumping structure for table smtplatrine.stats
 DROP TABLE IF EXISTS `stats`;
 CREATE TABLE IF NOT EXISTS `stats` (
-  `total_connections` int(11) DEFAULT NULL,
-  `total_smtp_commands` int(11) DEFAULT NULL,
-  `total_emails` int(11) DEFAULT NULL,
-  `total_attachments` int(11) DEFAULT NULL,
-  `total_data_processed` int(11) DEFAULT NULL,
-  `total_clients` int(11) DEFAULT NULL,
-  `uniqe_email_adresses` int(11) DEFAULT NULL,
-  `list_xmailers_seen` longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_bin DEFAULT NULL CHECK (json_valid(`list_xmailers_seen`)),
-  `list_useragent_seen` longtext DEFAULT NULL,
-  `list_mimetypes_seen` longtext DEFAULT NULL
+  `total_connections` int(11) NOT NULL DEFAULT 0,
+  `total_smtp_commands` int(11) NOT NULL DEFAULT 0,
+  `total_emails` int(11) NOT NULL DEFAULT 0,
+  `total_attachments` int(11) NOT NULL DEFAULT 0,
+  `total_data_processed` int(11) NOT NULL DEFAULT 0,
+  `total_clients` int(11) NOT NULL DEFAULT 0,
+  `uniqe_email_adresses` int(11) NOT NULL DEFAULT 0,
+  `list_xmailers_seen` longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_bin NOT NULL DEFAULT '[]' COMMENT 'Must be JSON',
+  `list_useragent_seen` longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_bin NOT NULL DEFAULT '[]' COMMENT 'Must be JSON',
+  `list_mimetypes_seen` longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_bin NOT NULL DEFAULT '[]' COMMENT 'Must be JSON'
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci COMMENT='Table that holds some fun stats, so we dont have to make big queries cross many tables';
 
 -- Data exporting was unselected.
