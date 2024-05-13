@@ -1,0 +1,17 @@
+[Unit]
+Description=SMTPLATRINE - A SMTP Honeypot
+DefaultDependencies=no
+After=network.target
+StartLimitBurst=5
+StartLimitIntervalSec=10
+
+[Service]
+Type=simple
+WorkingDirectory=/var/www/projects/smtplatrine
+ExecStart=/var/www/projects/smtplatrine/./smtplatrine
+TimeoutStartSec=0
+Restart=always
+RestartSec=10
+
+[Install]
+WantedBy=multi-user.target
