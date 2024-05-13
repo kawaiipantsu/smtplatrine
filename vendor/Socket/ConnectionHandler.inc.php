@@ -220,6 +220,19 @@ class connectionHandler {
                             return false;
                         }
 
+                        // Handle SMTP command that break rules
+                        if ( preg_match('/^503 Error: I can break rules, too/i',$response) ) {
+                                // Log what is going to happen
+                                $this->logger->logMessage("[".$client->getPeerAddress()."] Client sent a UNWANTED command at this time, closing connection", 'WARNING');
+
+                                // Handle end of connection
+                                $this->handleEnd($client);
+    
+                                // End the connectionHandler handle() function
+                                $this->logger->logMessage("[".$client->getPeerAddress()."] Closed connection (FORCED CLOSE)");
+                                return false;
+                        }
+
                     }
                 }
             } else {

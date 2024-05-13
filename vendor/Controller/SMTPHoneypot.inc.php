@@ -11,11 +11,14 @@ class SMTPHoneypot {
         'EHLO',
         'AUTH',
         'MAIL FROM',
+        'MAIL',
+        'RCPT',
         'RCPT TO',
         'DATA',
         'RSET',
         'NOOP',
         'QUIT',
+        'GET',
         'HELP'
     );
     private $smtpCommands = array();
@@ -433,7 +436,11 @@ class SMTPHoneypot {
                 // Make sure we are not in DATA mode
                 $this->setSMTPDATAmode(false);
                 // Set output as either FIRST or BAD sequence
-                if ( count($this->smtpCommandsSequence) < 1 ) $output = $this->reply(" Error: send HELO/EHLO first",503);
+                // We want to emulate Bad faith on some commands if they are first
+                if ( count($this->smtpCommandsSequence) < 1  && $command == "GET" ) $output = $this->reply(" Error: I can break rules, too. Goodbye.",503);
+                else if ( count($this->smtpCommandsSequence) < 1  && $command == "MAIL" ) $output = $this->reply(" Error: I can break rules, too. Goodbye.",503);
+                else if ( count($this->smtpCommandsSequence) < 1  && $command == "RCPT" ) $output = $this->reply(" Error: I can break rules, too. Goodbye.",503);
+                else if ( count($this->smtpCommandsSequence) < 1 ) $output = $this->reply(" Error: send HELO/EHLO first",503);
                 else $output = $this->reply(false,503);
             }
         }
