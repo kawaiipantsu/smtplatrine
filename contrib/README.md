@@ -33,8 +33,21 @@ Click any file to go to it directly.
 | [monitor_listner.sh](monitor_listner.sh) | Script to help you debug networking if the server/clients work |
 | [phpmailer_example.php](phpmailer_example.php) | Script to test sending email's! Really handy! - Quick testing and debug output!
 | [README.md](README.md) | This file duh! |
+| [smtplatrine_database_scratch.sql](smtplatrine_database_scratch.sql) | SMTPLATRINE Database Template (SQL) - Only use for clean install |
 | [smtplatrine.service](smtplatrine.service) | Systemd service file for smtplatrine |
 | [telnet_smtp_example.txt](telnet_smtp_example.txt) | Telnet/SMTP command step by step for sending a mail for reference|
+
+## SMTPLATRINE Database from scratch!
+
+> **ONLY DO THIS IF YOU DON'T CARE ABOUT LOSING ANY DATA!**
+
+Just import it as any other SQL file dump :) Either from terminal/cli or via your preferred Database client.
+
+```shell
+cd /path/to/smtplatrine
+cd contrib
+mysql -u username -p < smtplatrine_database_scratch.sql
+```
 
 ## Multitail smtplatrine custom log color scheme! :D
 
@@ -128,3 +141,34 @@ This is just for my own benefit, i don't think i will get around to work on the 
 **Good background color?**
 
 - `#021B2A`
+<!-- TOC -->
+
+- [ᵔᴥᵔ SMTPLATRINE 📦 CONTRIBS](#%E1%B5%94%E1%B4%A5%E1%B5%94-smtplatrine--contribs)
+    - [Table of contents](#table-of-contents)
+    - [Filess](#filess)
+    - [SMTPLATRINE Database from scratch!](#smtplatrine-database-from-scratch)
+    - [Multitail smtplatrine custom log color scheme! :D](#multitail-smtplatrine-custom-log-color-scheme-d)
+        - [What to expect ?](#what-to-expect-)
+        - [How to use](#how-to-use)
+    - [Systemd - Setup smtplatrine step by step](#systemd---setup-smtplatrine-step-by-step)
+        - [Installation steps](#installation-steps)
+        - [Check to see if it's running](#check-to-see-if-its-running)
+    - [Notes](#notes)
+        - [Graphical/Layout contraints](#graphicallayout-contraints)
+
+<!-- /TOC --><!-- TOC -->
+
+- [ᵔᴥᵔ SMTPLATRINE 📦 CONTRIBS](#%E1%B5%94%E1%B4%A5%E1%B5%94-smtplatrine--contribs)
+    - [Table of contents](#table-of-contents)
+    - [Filess](#filess)
+    - [SMTPLATRINE Database from scratch!](#smtplatrine-database-from-scratch)
+    - [Multitail smtplatrine custom log color scheme! :D](#multitail-smtplatrine-custom-log-color-scheme-d)
+        - [What to expect ?](#what-to-expect-)
+        - [How to use](#how-to-use)
+    - [Systemd - Setup smtplatrine step by step](#systemd---setup-smtplatrine-step-by-step)
+        - [Installation steps](#installation-steps)
+        - [Check to see if it's running](#check-to-see-if-its-running)
+    - [Notes](#notes)
+        - [Graphical/Layout contraints](#graphicallayout-contraints)
+
+<!-- /TOC -->
