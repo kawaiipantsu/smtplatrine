@@ -117,10 +117,11 @@ When building these kinds of service, especially honeypots - So much can go wron
 
 ### Test of mail clients/software against the honeypot
 
-| Software name | Test(s) performed | Status |
+| -- Software name ------------------------------ | -- Test(s) performed ---------------------- | -- Status -- |
 |---|---|:---:|
 | **Mozilla Thunderbird**<br>Basic smtp account | - Send mail, as text, html and both<br>- Using To,Cc,Bcc<br>- Adding multiple recipients<br>- Attaching files  | ✔️<br>✔️<br>✔️<br>✔️ |
-| **NMAP**<br>Detection | - Showing as Open-Relay<br>- `-sV` Version fingerprinting[^1]<br>- `--script=banner` | ✔️<br>⭕<br>✔️ | 
+| **NMAP**<br>Detection | - Showing as Open-Relay<br>- `-sV` Version fingerprinting[^1]<br>- `--script=banner` | ✔️<br>⭕<br>✔️ |
+| **PHPMailer**<br>Perfect for testing and debugging | - Send regular email<br>- Send regular email (HTML+TEXT)<br>- Send regular email (With Attachment)<br>- Send regular email (SMTPS)<br>- Send regular email (STARTTLS)<br>- Adding `AUTH` ( via LOGIN )<br>- Adding `AUTH` ( via PLAIN ) | ✔️<br>✔️<br>✔️<br>❌<br>❌<br>❌<br>❌ | 
 
 [^1]: We can choose to simulate a known fingerprint in the future. But for now we are our own SMTP server/honeypot.
 
