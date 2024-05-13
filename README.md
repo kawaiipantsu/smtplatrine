@@ -1,4 +1,4 @@
-# ᵔᴥᵔ SMTPLATRINE
+# ᵔᴥᵔ SMTPLATRINE - A SMTP Honeypot
 
 [![Twitter Follow](https://img.shields.io/twitter/follow/davidbl.svg?style=social&label=Follow)](https://twitter.com/davidbl) [![GitHub issues](https://img.shields.io/github/issues/kawaiipantsu/smtplatrine.svg)](https://github.com/kawaiipantsu/smtplatrine/issues) [![GitHub closed issues](https://img.shields.io/github/issues-closed/kawaiipantsu/smtplatrine.svg)](https://github.com/kawaiipantsu/smtplatrine/issues) [![GitHub license](https://img.shields.io/github/license/kawaiipantsu/smtplatrine.svg)](https://github.com/kawaiipantsu/smtplatrine/blob/master/LICENSE) [![GitHub forks](https://img.shields.io/github/forks/kawaiipantsu/smtplatrine.svg)](https://github.com/kawaiipantsu/smtplatrine/network) [![GitHub stars](https://img.shields.io/github/stars/kawaiipantsu/smtplatrine.svg)](https://github.com/kawaiipantsu/smtplatrine/stargazers)
 > SMTP Honeypot written in PHP, with focus on gathering intel on threat actors and for doing spam forensic work
@@ -7,63 +7,76 @@
 
 ---
 
-## Join the community
+> 🚨 **ALERT**  
+> Only run aa honeypot if you know what you are doing!
 
-Join the community of Kawaiipantsu / THUGS(red) and participate in the dev talk around Redjoust or simply just come visit us and chat about anything security related :) We love playing around with security. Also we have ctf events and small howto events for new players.
+---
 
-**THUGS(red) Discord**: <https://discord.gg/Xg2jMdvss9>
+## 🗃️ Table of contents
+<!-- TOC -->
 
-> This is still in a very early stage of development!
+- [ᵔᴥᵔ SMTPLATRINE - A SMTP Honeypot](#%E1%B5%94%E1%B4%A5%E1%B5%94-smtplatrine---a-smtp-honeypot)
+    - [🗃️ Table of contents](#-table-of-contents)
+    - [📧 What is smtplatrine?](#-what-is-smtplatrine)
+    - [🪄 How to install](#%F0%9F%AA%84-how-to-install)
+    - [💡 How to run](#-how-to-run)
+    - [⚙️ Configuaration](#-configuaration)
+    - [📐 RFC-5321  Simple Mail Transfer Protocol  compliance](#-rfc-5321--simple-mail-transfer-protocol--compliance)
+    - [🎱 Tests performed](#-tests-performed)
+        - [Test of mail clients/software against the honeypot](#test-of-mail-clientssoftware-against-the-honeypot)
+    - [💣 Security concerns and safty issues!](#-security-concerns-and-safty-issues)
+    - [😬 Running a "open-relay" SMTP server honypot or not](#-running-a-open-relay-smtp-server-honypot-or-not)
+    - [📑 References / Links to external sites](#-references--links-to-external-sites)
 
-## Current state
+<!-- /TOC -->
 
-Following things work as of now:
+---
 
-- Sockets / Server Listner
-- Threaded SocketClient handler
-- SMTP Honeypot functionality
-  - Tested via nmap openrelay script - Says open relay :)
-  - Toggle compliance (ie. EHLO/HELO first) and so on
-  - Handle DATA and End
+> ⚠️ **WARNING**  
+> The appliction as-is now, will not preform as intented!  
+> If you have no interrest in the development, then please come back when it's done!
+> 
+> This README/documentation is not done, lot of what you see is placeholders
 
-The following is up next:
+---
 
-- Database connection
-- Storing data
+## 📧 What is smtplatrine?
 
-## What is smtplatrine?
+## 🪄 How to install
 
-When you work in security and specially with doing forensic work or hunting threat actors. One of the big things that you need is "data" and one of the best ways to get new or unknown malicious data is via honeypots. A honeypot will emulate a real world service (in this case SMTP) and then the user (threat actor) will believe they are using a real service and try to exploit or use it for criminal shenanigans :)
+## 💡 How to run
 
-All while they are exploring the service trying to do their thing - All we do is to log all and everything about them and what they try.
+## ⚙️ Configuaration
 
-That is roughly what a honeypot is!
+## 📐 RFC-5321 ( Simple Mail Transfer Protocol ) compliance
 
-In this case i'm aiming to collect the following data:
+I tried to stay on top of it as much as possible. But again, when building a honeypot you need to be a little bit "relaxed" when it comes to compliance and following the strict rules of a protocol. Or else you wont be able to catch all the bad guy's out there as they don't always do things by the book :)
 
-- Threat Actors IP Address
-  - Meta via: VT, AbuseIPDB, OTX
-  - GeoIP
-- Threat Actors SMTP Transactions
-  - HELO/EHLO hostname
-  - AUTH credentials
-  - Identities
-    - Return-Path email
-    - Delivered-To email(s)
-    - Reply-To email(s)
-    - From email
-    - To email(s)
-    - Cc email(s)
-    - Bcc email(s)
-  - Received flow headers
-  - Authentication headers
-  - Abuse headers
-  - Custom Headers
-  - Message-ID
-  - Subject
-  - Body
-    - HTML version
-    - Text version
-  - Attachments
+But i have tried to add one thing, and that is to mimic the normal "strict" behavior of a SMTP server to always expect EHLO/HELO as the first command and then either MAIL FROM or AUTH. This can of course be disabled if you want to but i think it's nice.
 
-Everything will then be stored in a database (mysql) for further indexing and analysis/forensic work - But also to use for showing simple stats on the webpage etc.
+RSET does nothing, NOOP says Ok, but in the end it works out as RSET is not needed to reset the mail. If you just redo the MAIL FROM it will just use what ever you typed in last. And RCPT TO will always just build up an array, so even RSET it will remember old input :) Works out in the end!
+
+## 🎱 Tests performed
+
+When building these kinds of service, especially honeypots - So much can go wrong and you can lose valuable data. I have therefore tried to do a little bit of due diligence and tested the honeypot against a few known things.
+
+### Test of mail clients/software against the honeypot
+
+| Software name | Test(s) performed | Status |
+|---|---|:---:|
+| **Mozilla Thunderbird**<br>Basic smtp account | - Send mail, as text, html and both<br>- Using To,Cc,Bcc<br>- Adding multiple recipients<br>- Attaching files  | ✔️<br>✔️<br>✔️<br>✔️ |
+| **NMAP**<br>Detection | - Showing as Open-Relay<br>- Version detection<br>- Script banner  | ✔️<br>❌<br>❌ | 
+
+<!--- 
+❌ = Not working
+❔ = Not fully tested
+✔️ = Working!
+--->
+
+## 💣 Security concerns and safty issues!
+
+## 😬 Running a "open-relay" SMTP server (honypot or not)
+
+## 📑 References / Links to external sites
+
+- RFC-5321: https://datatracker.ietf.org/doc/html/rfc5321
