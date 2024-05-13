@@ -91,12 +91,15 @@ class EmailParser {
                         $fileUUIDv4 = $this->generateUUID4();
                         $attachmentData = mailparse_msg_extract_part($part, $rawmail, null);
                         $attachmentSize = strlen($attachmentData);
-                        $this->attachments[] = array(
-                            "uuid" => $fileUUIDv4,
-                            "filename" => $filename,
-                            "type" => $part_data['content-type'],
-                            "size" => $attachmentSize
-                        );
+
+                        // Generate file hashes (MD5, SHA1, SHA256)
+                        $attachmentMD5 = md5($attachmentData);
+                        $attachmentSHA1 = sha1($attachmentData);
+                        $attachmentSHA256 = hash('sha256', $attachmentData);
+
+                        $attachmentStored = "No";
+                        $attachmentAbsoluteFilePath = "";
+
                         // If we oped in to save the actual data, do so!
                         $saveAttachment = trim($this->config['smtp']['smtp_attachments_store']) == "1" ? true : false;
                         if ( $saveAttachment ) {
@@ -120,11 +123,27 @@ class EmailParser {
 
                             // Build how you want to attachments (sub folder) structure to be here
                             // For now we are just using the content type
-                            $attachmentAbsoluteFilePath = $type.'/'.$fileUUIDv4;
+                            $attachmentAbsoluteFilePath = $type.'/'.$attachmentSHA256;
 
                             // Save the attachment to disk
                             $this->saveAttachment($attachmentAbsoluteFilePath,$attachmentData);
+                            $attachmentStored = "Yes";
                         }
+
+                        $this->attachments[] = array(
+                            "uuid" => $fileUUIDv4,
+                            "filename" => $filename,
+                            "type" => $part_data['content-type'],
+                            "size" => $attachmentSize,
+                            "stored" => $attachmentStored,
+                            "stored_path" => $attachmentAbsoluteFilePath,
+                            "hashes" => array(
+                                "md5" => $attachmentMD5,
+                                "sha1" => $attachmentSHA1,
+                                "sha256" => $attachmentSHA256
+                            )
+                        );
+
                     }
                     $this->hasResult = true;
                 }
@@ -162,14 +181,19 @@ class EmailParser {
         $fullFilename = $attachmentPath.$partFilename;
         $fullPath = pathinfo($fullFilename, PATHINFO_DIRNAME);
 
-        // Create any subdirectory if not exists
-        if ( !is_dir($fullPath) ) mkdir($fullPath, 0775, true);
+        // Check if file already exists, if so skip saving it
+        if ( file_exists($fullFilename) ) {
+            $this->logger->logMessage('[EmailParser] Attachment already exists on disk: '.$partFilename);
+        } else {
+            // Create any subdirectory if not exists
+            if ( !is_dir($fullPath) ) mkdir($fullPath, 0775, true);
 
-        // Write the actual data to disk
-        $attachmentFileHandle = fopen($fullFilename, "w");
-        fwrite($attachmentFileHandle, $data);
-        fclose($attachmentFileHandle);
-        $this->logger->logMessage('[EmailParser] Attachment saved to disk: '.$partFilename);
+            // Write the actual data to disk
+            $attachmentFileHandle = fopen($fullFilename, "w");
+            fwrite($attachmentFileHandle, $data);
+            fclose($attachmentFileHandle);
+            $this->logger->logMessage('[EmailParser] Attachment saved to disk: '.$partFilename);
+        }
 
     }
 
