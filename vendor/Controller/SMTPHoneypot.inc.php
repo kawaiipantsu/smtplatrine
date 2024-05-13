@@ -107,7 +107,7 @@ class SMTPHoneypot {
 
     // Function to add custom X-header to email EML
     private function addCustomHeader($header,$value) {
-        $this->emailEML .= $header.": ".$value."\r\n";
+        $this->emailEML .= trim($header).": ".trim($value)."\r\n";
     }
 
     // Create the Recieved email EML initial header
@@ -161,11 +161,13 @@ class SMTPHoneypot {
         $this->addCustomHeader("X-Latrine-Queue-ID",$this->emailQueueID);
         $this->addCustomHeader("X-Latrine-Client-IP","%%CLIENTIP%%");
         $this->addCustomHeader("X-Latrine-Client-Port","%%CLIENTPORT%%");
+        $this->addCustomHeader("X-Latrine-Server-Hostname",gethostname());
         $this->addCustomHeader("X-Latrine-Server-Listen",$srvAddress);
         $this->addCustomHeader("X-Latrine-Server-Port",$srvPort);
+        $this->addCustomHeader("X-Latrine-Server-System",php_uname());
 
         // Make local copy of email data, to work on without destroying the original
-        $emailData = $this->emailData;
+        $emailEML = $this->emailData;
 
         // TODO: Check if there already is a Return-Path header, if so note it down and remove it from the data
         // TODO: Check if there already is a Delivered-To header, if so note it down and remove it from the data
@@ -174,7 +176,7 @@ class SMTPHoneypot {
         // Add Message-ID
 
         // Create the actual EML body from DATA
-        $this->emailEML .= $emailData."\r\n";
+        $this->emailEML .= $emailEML."\r\n";
     }
 
     // SMTP compliant check order of command sequence
@@ -300,6 +302,9 @@ class SMTPHoneypot {
         $hexEndSequence = bin2hex(substr($data,-5));
         // Check if we see the end of data sequence
         if ( $hexEndSequence == $this->smtpDATAendHEX ) {
+            // Add the last line to the email data
+            $this->addEmailData(rtrim(trim($data),'.'));
+
             $this->setSMTPDATAmode(false);
             $this->logger->logDebugMessage("[smtp] End of DATA (total bytes = ".strlen($this->emailData).")");
             $queue_number = $this->generateQueueID();
@@ -309,6 +314,9 @@ class SMTPHoneypot {
             $this->buildEmailEML();
             return $this->reply(" Ok: queued as ".$queue_number,250);
         } else if ( preg_match('/^(\r?\n){1}\.(\r?\n){1}$/',$dataQuitSequence) || preg_match('/^(\r?\n){1}\.(\r?\n){1}$/',$data) ) {
+            // Add the last line to the email data
+            $this->addEmailData(rtrim(trim($data),'.'));
+
             $this->setSMTPDATAmode(false);
             $this->logger->logDebugMessage("[smtp] End of DATA (total bytes = ".strlen($this->emailData).")");
             $queue_number = $this->generateQueueID();

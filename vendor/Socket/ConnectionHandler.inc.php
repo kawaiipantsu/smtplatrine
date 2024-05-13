@@ -292,10 +292,12 @@ class connectionHandler {
 
             $parser = new \Controller\EmailParser($data,"eml");
             $result = $parser->getParsedResult();
-
+            //var_dump($data);
             // for now debug the result
-            if ($result) print_r($result);
-            else {
+            if ($result) {
+                print_r($result);
+                
+            } else {
                 $this->logger->logErrorMessage('Something went wrong ???');
             }
 
