@@ -322,8 +322,6 @@ class SMTPHoneypot {
             $this->addEmailData($data);
         }
 
-        $this->logger->logMessage("TEST: : ".trim(substr($this->emailData,1,10)), 'NOTICE');
-
         return false; // We do this to continue the loop and continue to accept DATA
     }
 
