@@ -8,7 +8,7 @@
 ---
 
 > 🚨 **ALERT**  
-> Only run aa honeypot if you know what you are doing!
+> Only run a honeypot if you know what you are doing!
 
 ---
 
