@@ -221,7 +221,8 @@ class connectionHandler {
                         }
 
                         // Handle SMTP command that break rules
-                        if ( preg_match('/^503 Error: I can break rules, too/i',$response) ) {
+                        // Be aware that response can be an array, so we need to check for that
+                        if ( !is_array($response) && preg_match('/^503 Error: I can break rules, too/i',$response) ) {
                                 // Log what is going to happen
                                 $this->logger->logMessage("[".$client->getPeerAddress()."] Client sent a UNWANTED command at this time, closing connection", 'WARNING');
 

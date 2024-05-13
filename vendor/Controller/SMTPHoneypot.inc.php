@@ -180,6 +180,12 @@ class SMTPHoneypot {
         $validateCommands = $this->smtpCommandsSequence;
         $realCommands = $this->smtpCommands;
         
+        // Quickly just check if this is even a SMTP accepted command
+        // If not, just return true and let the command parser handle it.
+        if ( $this->validateCommand(end($realCommands)) === false ) {
+            return true;
+        }
+
         // Check for the commands that can always come out of order
         if ( count($realCommands) > 0 ) {
             if ( end($realCommands) == 'QUIT' || end($realCommands) == 'RSET' || end($realCommands) == 'NOOP' || end($realCommands) == 'HELP' ) {
