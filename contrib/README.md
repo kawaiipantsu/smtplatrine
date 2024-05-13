@@ -10,6 +10,8 @@
     - [Table of contents](#table-of-contents)
     - [Filess](#filess)
     - [Multitail smtplatrine custom log color scheme! :D](#multitail-smtplatrine-custom-log-color-scheme-d)
+        - [What to expect ?](#what-to-expect-)
+        - [How to use](#how-to-use)
     - [Systemd - Setup smtplatrine step by step](#systemd---setup-smtplatrine-step-by-step)
         - [Installation steps](#installation-steps)
         - [Check to see if it's running](#check-to-see-if-its-running)
@@ -36,6 +38,14 @@ Click any file to go to it directly.
 ## Multitail smtplatrine custom log color scheme! :D
 
 I know this is perhaps a bit overboard, but when developing this thing i was looking at the logs 24/7 and in all sort of modes. `DEBUG` can be very "lively" lol.  So i opt-in on finding a way to look at the log with les "eye clutter" and that is typically just to give lines you want to see a more prominent color/contrast and those you don't want to see less contrast or dull colors... In a terminal you are limited, but `bold` tend to be a nice contrast etc and then white/bright colors vs cyan.
+
+### What to expect ?
+
+Here is an example of the color scheme.
+
+![Multitail color scheme example](assets/multitail_example.png "Multitail color scheme example")
+
+### How to use
 
 So i made this config file for `multitail` to use it cp it to your home folder's root path.
 ```shell
