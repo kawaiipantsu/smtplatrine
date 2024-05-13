@@ -21,6 +21,11 @@
     - [🪄 How to install](#%F0%9F%AA%84-how-to-install)
     - [💡 How to run](#-how-to-run)
     - [⚙️ Configuaration](#-configuaration)
+    - [🫶 META osint Integrations](#%F0%9F%AB%B6-meta-osint-integrations)
+        - [VirusTotal](#virustotal)
+        - [AbuseIPDB](#abuseipdb)
+        - [AlienVault OTX](#alienvault-otx)
+        - [Ideas for other osint services to query](#ideas-for-other-osint-services-to-query)
     - [📐 RFC-5321  Simple Mail Transfer Protocol  compliance](#-rfc-5321--simple-mail-transfer-protocol--compliance)
     - [🎱 Tests performed](#-tests-performed)
         - [Test of mail clients/software against the honeypot](#test-of-mail-clientssoftware-against-the-honeypot)
@@ -47,6 +52,56 @@
 ## 💡 How to run
 
 ## ⚙️ Configuaration
+
+## 🫶 META (osint) Integrations
+
+META as in Metadata. It's enabled by default as we want to do GEO enrichment if the Maxmind files are avaiable. But you can completly disable it if you want to in the `meta.ini` file.
+
+As I want to make this a full blown "threat hunting" honeypot for SMTP in terms of looking at data. Not only for a forensic perspective on SPAM but also on Malware or other types of malicous things you might see. To do this I tought it would be cool to integrate with public (osint) services out there to enrich the data on the fly.
+
+
+> 🚩 **Please note, sadly this is all still on the "todo" list**
+
+### VirusTotal
+
+> ⚠️ REQUIRES API KEY
+
+We use VirusTotal to query on attachment filehashes and store the result in the DB. It will include things like scanning results and known names. To enable this make sure that you look in the `meta.ini` file under section `[vt]`
+
+```ini
+[vt]
+vt_enable                                        = false
+vt_key                                           = "YOUR KEY HERE"
+```
+
+### AbuseIPDB
+
+> ⚠️ REQUIRES API KEY
+
+To enable this make sure that you look in the `meta.ini` file under section `[abuseipdb]`
+
+```ini
+[abuseipdb]
+abuseipdb_enable                                 = true
+abuseipdb_key                                    = "YOUR KEY HERE"
+```
+
+### AlienVault OTX
+
+> ⚠️ REQUIRES API KEY
+
+To enable this make sure that you look in the `meta.ini` file under section `[otx]`
+
+```ini
+[otx]
+otx_enable                                       = false
+otx_key                                          = "YOUR KEY HERE"
+```
+### Ideas for other osint services to query
+
+If you want to see other osint services used in this honeypot, head on over to the discussion community and chat about it there. I think there would be some cool integrations out there! 
+
+Go to: https://github.com/kawaiipantsu/smtplatrine/discussions
 
 ## 📐 RFC-5321 ( Simple Mail Transfer Protocol ) compliance
 
@@ -85,6 +140,20 @@ Others
 ## 💣 Security concerns and safty issues!
 
 ## 😬 Running a "open-relay" SMTP server (honypot or not)
+
+When running a SMTP server there are some very important rules to remember.  
+Something a honeypot is completly ignoring and is actively trying to do all of that!
+
+1) Never run a "OPEN RELAY" on the public internet.
+2) Never run a "OPEN RELAY" on the public internet.
+3) Never run a "OPEN RELAY" on the public internet.
+
+I think you get the idea now :D
+
+But why this emphasis on not running a open relay smtp on the public internet ?  
+Well it's very bad manner and any Hosting provider, ISP or other kind of service provider will almost always either forcefully close your account/service down instantly or slap you with warnings, security tickets or straight up yell at you!
+
+So PLEASE refere to the [💣 Security concerns and safty issues!](#-security-concerns-and-safty-issues) section that explains a bit about safety and security when running a smtp honeypot but also in general to secure the sourrounding OS/system.
 
 ## 📑 References / Links to external sites
 
