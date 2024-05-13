@@ -8,6 +8,7 @@
 
 - [ᵔᴥᵔ SMTPLATRINE 📦 CONTRIBS](#%E1%B5%94%E1%B4%A5%E1%B5%94-smtplatrine--contribs)
     - [Table of contents](#table-of-contents)
+    - [Filess](#filess)
     - [Multitail smtplatrine custom log color scheme! :D](#multitail-smtplatrine-custom-log-color-scheme-d)
     - [Systemd - Setup smtplatrine step by step](#systemd---setup-smtplatrine-step-by-step)
         - [Installation steps](#installation-steps)
@@ -16,6 +17,12 @@
         - [Graphical/Layout contraints](#graphicallayout-contraints)
 
 <!-- /TOC -->
+
+---
+
+## Files(s)
+
+Click any file to go to it directly.
 
 | Filename | Description |
 |------:|:------|
