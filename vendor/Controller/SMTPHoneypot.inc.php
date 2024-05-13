@@ -23,6 +23,7 @@ class SMTPHoneypot {
     public $smtpLastCommand = false;
     protected $smtpDATAmode = false;
     private $dataLastLine = false;
+    private $weSecure = false;
 
     // Email components
     private $emailHELO = false;
@@ -105,13 +106,26 @@ class SMTPHoneypot {
     }
 
     // Create the Recieved email EML initial header
-    private function buildReceivedHeader() {
+    private function buildReceivedHeader( $oldData = "" ) {
+
+        // oldData will be the orginal mail DATA as delivered to the SMTP server (honeypot)
+        // We will use this to add the original Received headers to the new email EML below our own
+
+        // Set default values for our Received header
         $domain = array_key_exists("smtp_domain",$this->config['smtp']) ? trim($this->config['smtp']['smtp_domain']) : 'smtp.example.com';
         $banner = array_key_exists("smtp_banner",$this->config['smtp']) ? trim($this->config['smtp']['smtp_banner']) : 'SMTP Honeypot';
         $fullBanner = $domain.' '.$banner;
+        $smtpType = $this->weSecure ? "ESMTP" : "SMTP";
+
+        // First add the original Received headers
+        // TODO: preg_match_all on Received headers
+
+        // Now add our own Received header (top of the eml)
         $resv = "Received: from %%CLIENTIP%% ( %%CLIENTIP%% [%%CLIENTIPREVERSE%%])\r\n";
-        $resv .= " by ".$domain." (Postfix) with ESMTP id ".$this->emailQueueID."\r\n";
+        $resv .= " by ".$domain." (Postfix) with ".$smtpType." id ".$this->emailQueueID."\r\n";
         $resv .= " for <".$this->emailHELO.">; ".date('r')."\r\n";
+
+        // Return the new build Received header(s)
         return $resv;
     }
 
@@ -124,6 +138,7 @@ class SMTPHoneypot {
         $fullBanner = $domain.' '.$banner;
         $srvAddress = strtolower(trim($this->config['server']['server_listen']));
 		$srvPort = strtolower(trim($this->config['server']['server_port']));
+        $smtpType = $this->weSecure ? "ESMTP" : "SMTP";
 
         // First add return path
         $this->emailEML .= "Return-Path: <bounce@".$domain.">\r\n";
@@ -131,8 +146,12 @@ class SMTPHoneypot {
         foreach($this->emailRCPT as $rcpt) {
             $this->emailEML .= "Delivered-To: ".$rcpt."\r\n";
         }
-        // Add Recieved header
-        $this->emailEML .= $this->buildReceivedHeader();
+
+        // SMTP Recieved headers
+        // TODO: Check if there already is a Received header or multiple, in either case
+        //       we should add ours as the last one in the chain (top of the eml)
+        $this->emailEML .= $this->buildReceivedHeader($this->emailData);
+
         // Custom X-Latrine related headers
         $this->addCustomHeader("X-Latrine-Queue-ID",$this->emailQueueID);
         $this->addCustomHeader("X-Latrine-Client-IP","%%CLIENTIP%%");
@@ -140,8 +159,17 @@ class SMTPHoneypot {
         $this->addCustomHeader("X-Latrine-Server-Listen",$srvAddress);
         $this->addCustomHeader("X-Latrine-Server-Port",$srvPort);
 
+        // Make local copy of email data, to work on without destroying the original
+        $emailData = $this->emailData;
+
+        // TODO: Check if there already is a Return-Path header, if so note it down and remove it from the data
+        // TODO: Check if there already is a Delivered-To header, if so note it down and remove it from the data
+
+        // TODO: Check if there already is a Message-ID header, if so we should not add it again
+        // Add Message-ID
+
         // Create the actual EML body from DATA
-        $this->emailEML .= $this->emailData."\r\n";
+        $this->emailEML .= $emailData."\r\n";
     }
 
     // SMTP compliant check order of command sequence

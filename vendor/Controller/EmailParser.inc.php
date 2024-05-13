@@ -118,7 +118,12 @@ class EmailParser {
 
                             if ( !preg_match('/^[A-Z0-9_]+$/i',$type) ) $type = "unknown";
 
-                            $this->saveAttachment($type.'/'.$clientip.'/'.$fileUUIDv4,$attachmentData);
+                            // Build how you want to attachments (sub folder) structure to be here
+                            // For now we are just using the content type
+                            $attachmentAbsoluteFilePath = $type.'/'.$fileUUIDv4;
+
+                            // Save the attachment to disk
+                            $this->saveAttachment($attachmentAbsoluteFilePath,$attachmentData);
                         }
                     }
                     $this->hasResult = true;
