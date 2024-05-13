@@ -122,6 +122,9 @@ class Logger {
             case 'info':
                 $level = 'INFO';
                 break;
+            case 'notice':
+                $level = 'NOTICE';
+                break;
             case 'warning':
                 $level = 'WARNING';
                 break;
@@ -197,6 +200,9 @@ class Logger {
         switch ( strtolower(trim($level)) ) {
             case 'info':
                 $level = LOG_INFO;
+                break;
+            case 'notice':
+                $level = LOG_NOTICE;
                 break;
             case 'warning':
                 $level = LOG_WARNING;
