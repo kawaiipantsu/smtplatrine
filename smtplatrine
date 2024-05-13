@@ -33,18 +33,34 @@ require_once 'vendor/autoload.php';
 
 // Setup signal handling
 $signalHandler = new \Utils\Signals();
+
+// Delcare ticks for signal handling
+declare(ticks=1);
+
+// Enable async signals
 pcntl_async_signals(true);
+
 // Handle ^C in terminal etc
 pcntl_signal(SIGINT, [$signalHandler, 'doSIGINT']);
 // Handle kill (Terminated) signal
 pcntl_signal(SIGTERM, [$signalHandler, 'doSIGTERM']);
 pcntl_signal(SIGQUIT, [$signalHandler, 'doSIGTERM']);
+//pcntl_signal(SIGKILL, [$signalHandler, 'doSIGTERM']); // This is not catchable
+
 // Handle hup signal
 pcntl_signal(SIGHUP, [$signalHandler, 'doSIGHUP']);
 // This is Magic sauce, we ignore the signal from child processes
 // This eliminates the need for a signal handler in the parent process
 // And we will have no hanging zombie processes!
 pcntl_signal(SIGCHLD, SIG_IGN);
+
+// Other Signals that we want to catch for logging but not act on
+pcntl_signal(SIGUSR1, [$signalHandler, 'doNOTHING']);
+pcntl_signal(SIGUSR2, [$signalHandler, 'doNOTHING']);
+pcntl_signal(SIGALRM, [$signalHandler, 'doNOTHING']);
+pcntl_signal(SIGSEGV, [$signalHandler, 'doNOTHING']);
+pcntl_signal(SIGCONT, [$signalHandler, 'doNOTHING']);
+//pcntl_signal(SIGSTOP, [$signalHandler, 'doNOTHING']); // This is not catchable
 
 // Get the user info, running this script
 $mainUserInfo = posix_getpwuid(posix_geteuid());
