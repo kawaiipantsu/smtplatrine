@@ -132,12 +132,20 @@ class connectionHandler {
         $client->send($smtp->sendBanner());
 
         while( true ) {
-            // Read buffer
-            $read = $client->read();
+            // Read buffer from client
+            // As we want to make it more reliable, we change the buffer read size depending on the SMTP transaction
+            // Commands = 1024 bytes
+            // Data = 4096 bytes
+            if ( $smtp->getSMTPDATAmode() ) {
+                $read = $client->read(4096);
+            } else {
+                $read = $client->read(); // Default buffer size is 1024 bytes
+            }
 
             // Check if buffer is empty else parse data
+            //if ( empty($read) === false ) {
             if ( $read != '' ) {
-
+                
                 // THIS IS THE MAIN LOOP TO PROESS INCOMING DATA
                 // As this is a SMTP Honeypot, we shift to a mixture of SMTP and DATA mode
                 // Also remember the SMTP protocol, even if we are "done" and recieve a mail

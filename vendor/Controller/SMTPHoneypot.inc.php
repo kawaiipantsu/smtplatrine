@@ -28,6 +28,7 @@ class SMTPHoneypot {
     protected $smtpDATAmode = false;
     private $dataLastLine = false;
     private $weSecure = false;
+    private $smtpDATAendHEX = '0d0a2e0d0a'; // HEX for \r\n.\r\n
 
     // Email components
     private $emailHELO = false;
@@ -295,8 +296,19 @@ class SMTPHoneypot {
             $this->dataLastLine = substr($data, -2);
         } else $this->dataLastLine = $data;
 
-        // Check if end of data
-        if ( preg_match('/^(\r?\n){1}\.(\r?\n){1}$/',$dataQuitSequence) || preg_match('/^(\r?\n){1}\.(\r?\n){1}$/',$data) ) {
+        // Grab the last 5 bytes of the data and convert to HEX for comparison
+        $hexEndSequence = bin2hex(substr($data,-5));
+        // Check if we see the end of data sequence
+        if ( $hexEndSequence == $this->smtpDATAendHEX ) {
+            $this->setSMTPDATAmode(false);
+            $this->logger->logDebugMessage("[smtp] End of DATA (total bytes = ".strlen($this->emailData).")");
+            $queue_number = $this->generateQueueID();
+            // Set queue number
+            $this->emailQueueID = $queue_number;
+            // Build email EML
+            $this->buildEmailEML();
+            return $this->reply(" Ok: queued as ".$queue_number,250);
+        } else if ( preg_match('/^(\r?\n){1}\.(\r?\n){1}$/',$dataQuitSequence) || preg_match('/^(\r?\n){1}\.(\r?\n){1}$/',$data) ) {
             $this->setSMTPDATAmode(false);
             $this->logger->logDebugMessage("[smtp] End of DATA (total bytes = ".strlen($this->emailData).")");
             $queue_number = $this->generateQueueID();
@@ -309,6 +321,9 @@ class SMTPHoneypot {
             // Build email data
             $this->addEmailData($data);
         }
+
+        $this->logger->logMessage("TEST: : ".trim(substr($this->emailData,1,10)), 'NOTICE');
+
         return false; // We do this to continue the loop and continue to accept DATA
     }
 
