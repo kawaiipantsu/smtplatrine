@@ -13,15 +13,15 @@
 ---
 
 ## 🗃️ Table of contents
-<!-- TOC -->
+<!-- TOC updateonsave:false -->
 
 - [ᵔᴥᵔ SMTPLATRINE - A SMTP Honeypot](#%E1%B5%94%E1%B4%A5%E1%B5%94-smtplatrine---a-smtp-honeypot)
     - [🗃️ Table of contents](#-table-of-contents)
     - [📧 What is smtplatrine?](#-what-is-smtplatrine)
-    - [🪄 How to install](#%F0%9F%AA%84-how-to-install)
+    - [🪄 How to install](#-how-to-install)
     - [💡 How to run](#-how-to-run)
     - [⚙️ Configuaration](#-configuaration)
-    - [🫶 META osint Integrations](#%F0%9F%AB%B6-meta-osint-integrations)
+    - [🫶 META osint Integrations](#-meta-osint-integrations)
         - [VirusTotal](#virustotal)
         - [AbuseIPDB](#abuseipdb)
         - [AlienVault OTX](#alienvault-otx)
