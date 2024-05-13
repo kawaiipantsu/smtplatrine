@@ -31,6 +31,7 @@ Click any file to go to it directly.
 | [.multitailrc](.multitailrc) | This is a file for MultiTail with smtplatrine color scheme :)
 | [monitor_git_graph.sh](monitor_git_graph.sh) | Script to display GIT Graph visualizing your work while working! |
 | [monitor_listner.sh](monitor_listner.sh) | Script to help you debug networking if the server/clients work |
+| [phpmailer_example.php](phpmailer_example.php) | Script to test sending email's! Really handy! - Quick testing and debug output!
 | [README.md](README.md) | This file duh! |
 | [smtplatrine.service](smtplatrine.service) | Systemd service file for smtplatrine |
 | [telnet_smtp_example.txt](telnet_smtp_example.txt) | Telnet/SMTP command step by step for sending a mail for reference|
