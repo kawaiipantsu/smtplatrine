@@ -30,6 +30,7 @@ Click any file to go to it directly.
 | Filename | Description |
 |------:|:------|
 | [.multitailrc](.multitailrc) | This is a file for MultiTail with smtplatrine color scheme :)
+| [maxmind_geo_test.php](maxmind_geo_test.php) | Quick file to test if your Maxmind setup works
 | [monitor_git_graph.sh](monitor_git_graph.sh) | Script to display GIT Graph visualizing your work while working! |
 | [monitor_listner.sh](monitor_listner.sh) | Script to help you debug networking if the server/clients work |
 | [phpmailer_example.php](phpmailer_example.php) | Script to test sending email's! Really handy! - Quick testing and debug output!
@@ -48,6 +49,37 @@ Just import it as any other SQL file dump :) Either from terminal/cli or via you
 cd /path/to/smtplatrine
 cd contrib
 mysql -u username -p < smtplatrine_database_scratch.sql
+```
+
+## Setting up Maxmind on Debian (Quick way)
+
+Hey, head on over to Maxmind and create an account.  
+Then grab/generate an API key and then let's rock!
+
+```shell
+apt-get update
+# Remember geoipupdate is part of non-free apt sources
+apt-get install geoipupdate
+
+cat <<_EOF >> /etc/GeoIP.conf
+AccountID <CHANGEME BEFORE PASTING>
+LicenseKey <CHANGEME BEFORE PASTING>
+EditionIDs GeoLite2-ASN GeoLite2-City GeoLite2-Country
+_EOF
+
+geoipupdate
+
+ls -al /var/lib/GeoIP
+```
+Maxmind and PHP
+
+```shell
+apt-get update
+apt-get install php-maxminddb php8.2-maxminddb
+
+cd /path/to/smtplatrine
+cd contrib
+php maxmind_geo_test.php
 ```
 
 ## Multitail smtplatrine custom log color scheme! :D
