@@ -119,7 +119,7 @@ class connectionHandler {
 
 
         // If db return false, close connection with log message
-        if ( !$db->isConfigLoaded() ) {
+        if ( $db->isDBready() === false) {
             $client->send($smtp->sendBanner());
             $client->send($smtp->closeConnection());
             $this->logger->logErrorMessage('['.$client->getPeerAddress().'] Database connection failed, closing connection');
