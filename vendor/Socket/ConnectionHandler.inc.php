@@ -8,6 +8,8 @@ class connectionHandler {
     protected $run;
 
     private $logger;
+    private $db;
+    private $smtp;
     private $config = false;
     private $srvPort = false;
     private $srvAddress = false;
@@ -20,6 +22,12 @@ class connectionHandler {
 
         // Setup vendor logger
         $this->logger = new \Controller\Logger(basename(__FILE__,'.inc.php'),__NAMESPACE__);
+
+        // Load up Database functionality
+        $this->db = new \Controller\Database;
+
+        // Load up SMTP Honeypot functionaility
+        $this->smtp = new \Controller\SMTPHoneypot;
 
         // Read config if not already loaded
         if ( $this->config === false ) {
@@ -63,6 +71,10 @@ class connectionHandler {
             $this->otherProcesses = $otherProcesses;
             cli_set_process_title("smtplatrine-connectionhandler");
 
+            // If we get here that means a client connected
+            // So let's insert the client into the database
+            $this->db->insertClientIP($this->socket->getPeerAddress());
+
             // Handle connection socket data
             $this->handle();
             exit(0);
@@ -100,16 +112,10 @@ class connectionHandler {
 
         $this->logger->logMessage('[client] Client connected '.$client->getPeerAddress().':'.$client->getPeerPort().'->'.$client->getAddress().':'.$client->getPort());
 
-        // Load up Database functionality
-        $db = new \Controller\Database;
-
-        // Load up SMTP Honeypot functionaility
-        $smtp = new \Controller\SMTPHoneypot;
-
         // If we have more than 2 processes, close connection with log message
         if ( count($this->otherProcesses) >= $this->maxClients ) {
-            $client->send($smtp->sendBanner());
-            $client->send($smtp->closeConnectionToManyConnections());
+            $client->send($this->smtp->sendBanner());
+            $client->send($this->smtp->closeConnectionToManyConnections());
             $this->logger->logErrorMessage('[server] Too many connections, closing connection');
             $client->close();
             $this->logger->logMessage("[".$client->getPeerAddress()."] Disconnected");
@@ -119,9 +125,9 @@ class connectionHandler {
 
 
         // If db return false, close connection with log message
-        if ( $db->isDBready() === false) {
-            $client->send($smtp->sendBanner());
-            $client->send($smtp->closeConnection());
+        if ( $this->db->isDBready() === false) {
+            $client->send($this->smtp->sendBanner());
+            $client->send($this->smtp->closeConnection());
             $this->logger->logErrorMessage('['.$client->getPeerAddress().'] Database backend not found, closing connection');
             $client->close();
             $this->logger->logMessage("[".$client->getPeerAddress()."] Disconnected");
@@ -129,14 +135,14 @@ class connectionHandler {
         }
         
         // Send SMTP Banner
-        $client->send($smtp->sendBanner());
+        $client->send($this->smtp->sendBanner());
 
         while( true ) {
             // Read buffer from client
             // As we want to make it more reliable, we change the buffer read size depending on the SMTP transaction
             // Commands = 1024 bytes
             // Data = 4096 bytes
-            if ( $smtp->getSMTPDATAmode() ) {
+            if ( $this->smtp->getSMTPDATAmode() ) {
                 $read = $client->read(4096);
             } else {
                 $read = $client->read(); // Default buffer size is 1024 bytes
@@ -153,11 +159,11 @@ class connectionHandler {
                 // sends a QUIT command!
 
                 // Controle - Check if we are inside SMTP DATA mode
-                if ( $smtp->getSMTPDATAmode() ) {
+                if ( $this->smtp->getSMTPDATAmode() ) {
 
                     // Since this should be DATA, parse it as such!
                     // As long as we are in DATA mode, we will keep parsing the data by returning "false"
-                    $dataStatus = $smtp->parseData($read);
+                    $dataStatus = $this->smtp->parseData($read);
 
                     // We recieved output from the DATA parser, meaning we are either done or have an error
                     if ( $dataStatus ) {
@@ -174,7 +180,7 @@ class connectionHandler {
 
                             // Get the complete/finished email in a raw known EML data format
                             // EML = Electronic Mail Message
-                            $mailData = $smtp->getEmailEML();
+                            $mailData = $this->smtp->getEmailEML();
 
                             // It's happend !
                             // Now let's parse the data and store it in the database for further analysis
@@ -192,7 +198,7 @@ class connectionHandler {
                     // Since we are NOT in the DATA mode, we are in regular SMTP command mode
                     // So let's parse what ever the client connected inputs and simulate SMTP commands responses
                     // The command line interpeter will always return a reply to the client!
-                    $response = $smtp->parseCommand($read);
+                    $response = $this->smtp->parseCommand($read);
 
                     // Based on what the client sent, we can now send a reply back to the client
                     if ( $response ) {
@@ -216,7 +222,7 @@ class connectionHandler {
                         // Handle SMTP QUIT command
                         // We have this very nice public variable to check what ever the last
                         // SMTP command we processed was, so we can act on it
-                        if ( $smtp->smtpLastCommand == 'QUIT' ) {
+                        if ( $this->smtp->smtpLastCommand == 'QUIT' ) {
                             // Log what is going to happen
                             $this->logger->logMessage("[".$client->getPeerAddress()."] Client sent QUIT command, closing connection");
 
@@ -292,11 +298,69 @@ class connectionHandler {
 
             $parser = new \Controller\EmailParser($data,"eml");
             $result = $parser->getParsedResult();
-            //var_dump($data);
-            // for now debug the result
+
+            // We are all set !!
+            // Now we can store the data in the database
             if ($result) {
-                print_r($result);
+
+                // Rebuild smtp_attachments to be a json array from the array it contains
+                $attachments_uuids = array();
+
+                // Prepare attachments array
+                foreach ( $result['attachments'] as $attachment ) {
+                    $attachments_uuids[] = $attachment['uuid'];
+                }
+
+                $this->logger->logDebugMessage('['.$client->getPeerAddress().'] Storing email data in database');
                 
+                // Special switch case to catch multiways of useragents key name in headers
+                $useragent = '';
+                if ( array_key_exists('user-agent',$result['headers']) ) {
+                    $useragent = $result['headers']['user-agent'];
+                } else if ( array_key_exists('x-user-agent',$result['headers']) ) {
+                    $useragent = $result['headers']['x-user-agent'];
+                } else if ( array_key_exists('useragent',$result['headers']) ) {
+                    $useragent = $result['headers']['useragent'];
+                } else if ( array_key_exists('x-useragent',$result['headers']) ) {
+                    $useragent = $result['headers']['x-useragent'];
+                }
+
+                // Prepare the fields array
+                $fields = array(
+                    'emails_client_ip'                        => array_key_exists('x-latrine-client-ip',$result['headers']) ? $result['headers']['x-latrine-client-ip'] : $client->getPeerAddress(),
+                    'emails_client_port'                      => array_key_exists('x-latrine-client-port',$result['headers']) ? $result['headers']['x-latrine-client-port'] : $client->getPeerPort(),
+                    'emails_server_port'                      => array_key_exists('x-latrine-server-port',$result['headers']) ? $result['headers']['x-latrine-server-port'] : $client->getPort(),
+                    'emails_server_hostname'                  => array_key_exists('x-latrine-server-hostname',$result['headers']) ? $result['headers']['x-latrine-server-hostname'] : gethostname(),
+                    'emails_server_listning'                  => array_key_exists('x-latrine-server-listen',$result['headers']) ? $result['headers']['x-latrine-server-listen'] : $client->getPeerAddress(),
+                    'emails_server_system'                    => array_key_exists('x-latrine-server-system',$result['headers']) ? $result['headers']['x-latrine-server-system'] : php_uname(),
+                    'emails_queue_id'                         => array_key_exists('x-latrine-queue-id',$result['headers']) ? $result['headers']['x-latrine-queue-id'] : '',
+                    'emails_header_to'                        => array_key_exists('to',$result['headers']) ? $result['headers']['to'] : '',
+                    'emails_header_from'                      => array_key_exists('from',$result['headers']) ? $result['headers']['from'] : '',
+                    'emails_header_cc'                        => array_key_exists('cc',$result['headers']) ? $result['headers']['cc'] : '',
+                    'emails_header_reply_to'                  => array_key_exists('reply-to',$result['headers']) ? $result['headers']['reply-to'] : '',
+                    'emails_header_organization'              => array_key_exists('organization',$result['headers']) ? $result['headers']['organization'] : '',
+                    'emails_header_subject'                   => array_key_exists('subject',$result['headers']) ? $result['headers']['subject'] : '',
+                    'emails_header_message_id'                => array_key_exists('message-id',$result['headers']) ? $result['headers']['message-id'] : '',
+                    'emails_header_xmailer'                   => array_key_exists('x-mailer',$result['headers']) ? $result['headers']['x-mailer'] : '',
+                    'emails_header_useragent'                 => $useragent,
+                    'emails_header_content_type'              => array_key_exists('content-type',$result['headers']) ? $result['headers']['content-type'] : '',
+                    'emails_header_content_transfer_encoding' => array_key_exists('content-transfer-encoding',$result['headers']) ? $result['headers']['content-transfer-encoding'] : '',
+
+                    'emails_body_text' => empty($result['body']['text']) ? '' : $result['body']['text'],
+                    'emails_body_html' => empty($result['body']['html']) ? '' : $result['body']['html'],
+
+                    'emails_recipients' => $result['headers']['delivered-to'],                  // This will be handled inside storeEmail function
+                    'emails_header_received' => json_encode($result['headers']['received']),    // This can just be sent directly as JSON
+                    'emails_attachments' => $attachments_uuids                                  // This will be handled inside insertEMAIL function
+                );
+
+                $emailID = $this->db->insertEMAIL($fields);
+                
+                // Now handle the attachments
+                foreach ( $result['attachments'] as $attachment ) {
+                    $this->db->insertATTACHMENT($emailID, $attachment);
+                }
+
             } else {
                 $this->logger->logErrorMessage('Something went wrong ???');
             }

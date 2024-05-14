@@ -289,7 +289,7 @@ class Server {
 		switch( $blacklist ) {
 			case "ip":
 				$query = "SELECT ip_addr FROM acl_blacklist_ip";
-				$result = $this->db->dbMysqlRawQuery($query, true, false); // Query, Return, No logging
+				$result = $this->db->dbMysqlRawQuery($query, true, false); // Query, No return sql resource, No logging
 				if ( mysqli_num_rows($result) > 0 ) {
 					while( $row = mysqli_fetch_assoc($result) ) {
 						$blacklistArray[] = $row['ip_addr'];
@@ -299,7 +299,7 @@ class Server {
 				break;
 			case "geo":
 				$query = "SELECT geo_code FROM acl_blacklist_geo";
-				$result = $this->db->dbMysqlRawQuery($query, true, false); // Query, Return, No logging
+				$result = $this->db->dbMysqlRawQuery($query, true, false); // Query, No return sql resource, No logging
 				if ( mysqli_num_rows($result) > 0 ) {
 					while( $row = mysqli_fetch_assoc($result) ) {
 						$blacklistArray[] = strtoupper(trim($row['geo_code']));
