@@ -145,21 +145,34 @@ class Database {
 
     // Do query ( NOTE THIS HAS NO ESCAPING! PLEASE USE PREPARED STATEMENTS! )
     // This i just for quick and dirty queries
-    public function dbMysqlRawQuery( $query ) {
+    public function dbMysqlRawQuery( $query, $doReturn = true , $doLogging = true ) {
         // Set MySQLi reporting
         mysqli_report($this->mysqlReporting);
         // Establish a connection to the database
         $this->dbMysqlConnect();
 
         if ( $this->dbConnected ) {
-            $result = mysqli_query($this->db, $query);
-            $rowcount = mysqli_num_rows($result);
-            if ( $result === false ) {
-                $this->logger->logErrorMessage('[database] Query failed: ' . trim(mysql_error()));
+
+            if ( $doReturn ) {
+                $result = mysqli_query($this->db, $query);
+                $rowcount = mysqli_num_rows($result);
+                if ( $result === false ) {
+                    if ( $doLogging ) $this->logger->logErrorMessage('[database] Query failed: ' . trim(mysql_error()));
+                    return false;
+                } else {
+                    if ( $doLogging )$this->logger->logDebugMessage('[database] Query success: ' . $query . ' returned ' . $rowcount . ' rows');
+                    return $result;
+                }
             } else {
-                $this->logger->logDebugMessage('[database] Query success: ' . $query . ' returned ' . $rowcount . ' rows');
-                return $result;
+                if ( mysqli_query($this->db, $query) === false ) {
+                    if ( $doLogging ) $this->logger->logErrorMessage('[database] Query failed: ' . trim(mysql_error()));
+                    return false;
+                } else {
+                    if ( $doLogging ) $this->logger->logDebugMessage('[database] Query success: ' . $query);
+                    return true;
+                }
             }
+
             // Close the connection
             $this->dbMysqlClose();
         } else {
@@ -168,6 +181,7 @@ class Database {
     }
 
     // Ping the database connection
+    // Not really something that has any benefit, but it's here (since we connect, disconnect on each query anyway)
     public function dbMysqlPing() {
         if ( $this->db->ping() && $this->dbConnected ) {
             // Log the result
@@ -179,7 +193,54 @@ class Database {
         }
     }
 
-    // 
+    // -- UPDATE BLACKLIST ENTRIES IF SEEN AGAIN
+    public function blacklistUpdateEntry( $blacklist = false, $value = false ) {
+
+        // Establish a connection to the database
+        $this->dbMysqlConnect();
+
+        if ( $this->dbConnected && $blacklist && $value ) {
+
+            $table = false;
+            $column = false;
+
+            switch ( $blacklist ) {
+                case 'ip':
+                    $table   = 'acl_blacklist_ip';
+                    $column  = 'ip_addr';
+                    $counter = 'ip_conn_tries';
+                    break;
+                case 'geo':
+                    $table   = 'acl_blacklist_geo';
+                    $column  = 'geo_code';
+                    $counter = 'geo_conn_tries';
+                    break;
+            }
+
+            // If we have a table (and column) set and not empty then do
+            if ( $table && $column ) {
+                // Prepare the query
+                $query = "UPDATE ".$table." SET ";
+                $query .= $counter." = ".$counter." + 1 ";
+                $query .= "WHERE ".$column." = '".mysqli_real_escape_string($this->db,$value)."' ";
+                $query .= "LIMIT 1";
+
+                // Do the query
+                $this->dbMysqlRawQuery($query,false,false); // Query, No return, No logging
+            }
+
+        } 
+
+    }
+
+    // -- INSERT EMAIL PARTS via individual functions for each part
+    public function insertEMAIL( $fields = [] , $doEscape = true ) {
+        // Establish a connection to the database
+        $this->dbMysqlConnect();
+
+        if ( $this->dbConnected ) {
+        }
+    }
 
 
 }
