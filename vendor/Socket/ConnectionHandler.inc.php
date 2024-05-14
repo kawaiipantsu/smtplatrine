@@ -122,7 +122,7 @@ class connectionHandler {
         if ( $db->isDBready() === false) {
             $client->send($smtp->sendBanner());
             $client->send($smtp->closeConnection());
-            $this->logger->logErrorMessage('['.$client->getPeerAddress().'] Database connection failed, closing connection');
+            $this->logger->logErrorMessage('['.$client->getPeerAddress().'] Database backend not found, closing connection');
             $client->close();
             $this->logger->logMessage("[".$client->getPeerAddress()."] Disconnected");
             return false;
