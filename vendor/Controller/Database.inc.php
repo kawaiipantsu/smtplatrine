@@ -48,10 +48,8 @@ class Database {
             // Switch backend
             switch ( strtolower(trim($this->dbBackendAvailable)) ) {
                 case 'mysql':
-                    // Set MySQLi reporting
-                    mysqli_report($this->mysqlReporting);
-                    // Establish a connection to the database
-                    $this->dbMysqlConnect();
+                    $this->logger->logMessage('[database] Using MySQL backend');
+                    $this->dbBackendAvailable = 'mysql';
                     break;
                 default:
                     $this->logger->logErrorMessage('[database] Backend not supported: ' . $this->dbBackendAvailable);
@@ -67,12 +65,13 @@ class Database {
 
     // Destructor
     public function __destruct() {
-        $this->db = null;
+        $this->logger->logDebugMessage('[database] Closing connection to ' . $this->dbHost . ' on port ' . $this->dbPort . ' as ' . $this->dbUser . ' to database ' . $this->dbName);
+        $this->dbMysqlClose();
     }
 
     // Check if we could load config
     public function isDBready() {
-        if ( $this->dbConnected === false ) {
+        if ( $this->dbBackendAvailable === false ) {
             return false;
         } else {
             return true;
@@ -121,7 +120,7 @@ class Database {
                 $this->dbConnected = false;
             } else {
                 $this->logger->logDebugMessage('[database] Connected to ' . $this->dbHost . ' on port ' . $this->dbPort . ' as ' . $this->dbUser . ' to database ' . $this->dbName);
-                $this->db = $mysqli;
+                $this->db = $db;
                 $this->dbConnected = true;
                 $this->dbHostinfo = trim(mysqli_get_host_info($db));
 
@@ -144,17 +143,43 @@ class Database {
         }
     }
 
+    // Do query ( NOTE THIS HAS NO ESCAPING! PLEASE USE PREPARED STATEMENTS! )
+    // This i just for quick and dirty queries
+    public function dbMysqlRawQuery( $query ) {
+        // Set MySQLi reporting
+        mysqli_report($this->mysqlReporting);
+        // Establish a connection to the database
+        $this->dbMysqlConnect();
+
+        if ( $this->dbConnected ) {
+            $result = mysqli_query($this->db, $query);
+            $rowcount = mysqli_num_rows($result);
+            if ( $result === false ) {
+                $this->logger->logErrorMessage('[database] Query failed: ' . trim(mysql_error()));
+            } else {
+                $this->logger->logDebugMessage('[database] Query success: ' . $query . ' returned ' . $rowcount . ' rows');
+                return $result;
+            }
+            // Close the connection
+            $this->dbMysqlClose();
+        } else {
+            return false;
+        }
+    }
+
     // Ping the database connection
     public function dbMysqlPing() {
         if ( $this->db->ping() && $this->dbConnected ) {
             // Log the result
-            $this->logger->logMessage('[database] Ping: Our connection is ok!', 'NOTICE');
+            $this->logger->logMessage('[database] Ping: Our connection is ok!');
         } else {
             // Log the result and show error
             $this->logger->logErrorMessage('[database] Ping: Failed ('.trim($this->db->error).')');
             $this->dbConnected = false;
         }
     }
+
+    // 
 
 
 }
