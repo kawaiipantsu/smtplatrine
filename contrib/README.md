@@ -5,11 +5,15 @@
 ## Table of contents
 
 <!-- TOC -->
+<!-- TOC -->
 
 - [ᵔᴥᵔ SMTPLATRINE 📦 CONTRIBS](#%E1%B5%94%E1%B4%A5%E1%B5%94-smtplatrine--contribs)
     - [Table of contents](#table-of-contents)
     - [Filess](#filess)
     - [SMTPLATRINE Database from scratch!](#smtplatrine-database-from-scratch)
+    - [Setting up Maxmind on Debian Quick way](#setting-up-maxmind-on-debian-quick-way)
+        - [Install MAxmind geoipupdate](#install-maxmind-geoipupdate)
+        - [Maxmind and PHP](#maxmind-and-php)
     - [Multitail smtplatrine custom log color scheme! :D](#multitail-smtplatrine-custom-log-color-scheme-d)
         - [What to expect ?](#what-to-expect-)
         - [How to use](#how-to-use)
@@ -20,8 +24,6 @@
         - [Graphical/Layout contraints](#graphicallayout-contraints)
 
 <!-- /TOC -->
-
----
 
 ## Files(s)
 
@@ -53,6 +55,10 @@ mysql -u username -p < smtplatrine_database_scratch.sql
 
 ## Setting up Maxmind on Debian (Quick way)
 
+We need Maxmind GEO support in order to enrich the incoming data but also to enable etc blacklisting of incomming connections based on country. So this is a must on your system in my appinion. Please dont skip, let's make it work :) Gives you such a better experience and stats related to the honeypot.
+
+### Install MAxmind geoipupdate
+
 Hey, head on over to Maxmind and create an account.  
 Then grab/generate an API key and then let's rock!
 
@@ -71,7 +77,7 @@ geoipupdate
 
 ls -al /var/lib/GeoIP
 ```
-Maxmind and PHP
+### Maxmind and PHP
 
 ```shell
 apt-get update
