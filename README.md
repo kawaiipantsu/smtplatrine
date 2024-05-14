@@ -56,6 +56,13 @@ apt-get install mariadb-server apache2 nano
 apt-get install geoipupdate multitail
 apt-get install php8.2 php8.2-mysqli php-maxminddb php8.2-maxminddb php-mailparse php8.2-mailparse
 
+cat <<_EOF >> /etc/GeoIP.conf
+AccountID <CHANGEME BEFORE PASTING>
+LicenseKey <CHANGEME BEFORE PASTING>
+EditionIDs GeoLite2-ASN GeoLite2-City GeoLite2-Country
+_EOF
+geoipupdate
+
 cd /opt
 git clone https://github.com/kawaiipantsu/smtplatrine
 

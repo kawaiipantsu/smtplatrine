@@ -282,6 +282,8 @@ class Database {
         // Establish a connection to the database
         $this->dbMysqlConnect();
 
+        $clientIP = trim("80.197.127.162");
+
         // Geo information
         if ( $this->meta->isGeoIPavailable() ) {
             $geo = $this->meta->getGeoIPMain($clientIP);
@@ -291,6 +293,9 @@ class Database {
                 if ( array_key_exists('country',$geo) && array_key_exists('iso_code',$geo['country'] ) ) {
                     $countrycode = $geo['country']['iso_code'];
                     $countryname = $geo['country']['names']['en'];
+                    if ( array_key_exists('is_in_european_union',$geo['country']) ) {
+                        $euunion = $geo['country']['is_in_european_union'];
+                    }
                 }
 
                 // City part
@@ -345,6 +350,8 @@ class Database {
 
         }
 
+        var_dump($euunion);
+
         if ( $this->dbConnected && $clientIP ) {
             // Prepare the insert query on duplicate key update
             $query = "INSERT INTO honeypot_clients (clients_ip,clients_hostname,clients_as_number,clients_as_name,clients_geo_country_code,clients_geo_country_name,clients_geo_continent,clients_geo_eu_union,clients_geo_city_name,clients_geo_city_postalcode,clients_geo_subdivisionname,clients_geo_latitude,clients_geo_longitude,client_location_accuracy_radius,clients_timezone) VALUES (";
@@ -355,7 +362,7 @@ class Database {
             if ( isset($clientIP) ) $query .= "'".mysqli_real_escape_string($this->db,gethostbyaddr($clientIP))."',";
             else $query .= "NULL,";
 
-            if ( isset($asnumber) ) $query .= "'".mysqli_real_escape_string($this->db,$asnumber)."',";
+            if ( isset($asnumber) ) $query .= "".mysqli_real_escape_string($this->db,$asnumber).",";
             else $query .= "NULL,";
 
             if ( isset($asname) ) $query .= "'".mysqli_real_escape_string($this->db,$asname)."',";
@@ -367,11 +374,11 @@ class Database {
             if ( isset($countryname) ) $query .= "'".mysqli_real_escape_string($this->db,$countryname)."',";
             else $query .= "NULL,";
 
-            if ( isset($continentcode) ) $query .= "'".mysqli_real_escape_string($this->db,$continentcode)."',";
-            else $query .= "NULL,";
-
             if ( isset($continentname) ) $query .= "'".mysqli_real_escape_string($this->db,$continentname)."',";
             else $query .= "NULL,";
+
+            if ( isset($euunion) && $euunion ) $query .= "'Yes',";
+            else $query .= "'No',";
 
             if ( isset($cityname) ) $query .= "'".mysqli_real_escape_string($this->db,$cityname)."',";
             else $query .= "NULL,";

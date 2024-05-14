@@ -9,7 +9,7 @@ use MaxMind\Db\Reader AS MaxMindReader;
 
 //require_once 'vendor/autoload.php';
 
-$ipAddress        = '87.248.119.252';                           // IP to test
+$ipAddress        = '80.197.127.162';                           // IP to test
 $databaseFileCity = '/var/lib/GeoIP/GeoLite2-City.mmdb';        // To your Maxmind mmdb v2 file
 $databaseFileASN  = '/var/lib/GeoIP/GeoLite2-ASN.mmdb';         // To your Maxmind mmdb v2 file
 
