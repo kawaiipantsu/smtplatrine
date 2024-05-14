@@ -126,7 +126,7 @@ CREATE TABLE IF NOT EXISTS `honeypot_emails` (
   `id` int(11) NOT NULL AUTO_INCREMENT COMMENT 'Main uniqe ID to identify a email',
   `smtp_client_ip` varchar(32) NOT NULL,
   `smtp_client_port` int(11) NOT NULL DEFAULT 0,
-  `smtp_delivered_to` longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_bin NOT NULL CHECK (json_valid(`smtp_delivered_to`)),
+  `smtp_recipients` longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_bin NOT NULL DEFAULT '[]' COMMENT 'Must be JSON' CHECK (json_valid(`smtp_recipients`)),
   `smtp_queue_id` varchar(12) NOT NULL DEFAULT '0',
   `smtp_server_hostname` varchar(128) NOT NULL DEFAULT '0',
   `smtp_server_listning` varchar(36) NOT NULL DEFAULT '0',
@@ -157,7 +157,7 @@ CREATE TABLE IF NOT EXISTS `honeypot_emails` (
 -- Dumping structure for table smtplatrine.honeypot_recipients
 DROP TABLE IF EXISTS `honeypot_recipients`;
 CREATE TABLE IF NOT EXISTS `honeypot_recipients` (
-  `recipients_email` int(11) NOT NULL,
+  `id` int(11) NOT NULL AUTO_INCREMENT,
   `recipients_address` varchar(256) NOT NULL DEFAULT '',
   `recipients_name` varchar(256) NOT NULL DEFAULT '',
   `recipients_username` varchar(128) NOT NULL,
@@ -166,10 +166,9 @@ CREATE TABLE IF NOT EXISTS `honeypot_recipients` (
   `recipients_seen` int(11) NOT NULL DEFAULT 0,
   `recipients_seen_first` timestamp NOT NULL DEFAULT current_timestamp(),
   `recipients_seen_last` timestamp NOT NULL DEFAULT '0000-00-00 00:00:00' ON UPDATE current_timestamp(),
-  PRIMARY KEY (`recipients_email`),
+  PRIMARY KEY (`id`),
   UNIQUE KEY `recipients_address` (`recipients_address`),
-  KEY `recipients_domain` (`recipients_domain`),
-  CONSTRAINT `fk_recipients_email` FOREIGN KEY (`recipients_email`) REFERENCES `honeypot_emails` (`id`) ON DELETE NO ACTION ON UPDATE CASCADE
+  KEY `recipients_domain` (`recipients_domain`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci COMMENT='This table holds all seen recipients from the SMTP sessions, we don''t have duplicates however we update a seen count';
 
 -- Data exporting was unselected.
