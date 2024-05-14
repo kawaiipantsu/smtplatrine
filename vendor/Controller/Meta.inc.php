@@ -1,13 +1,14 @@
 <?PHP
 
+namespace Controller;
+
 // As we want to use GEO information if Geo ACL protection is loaded
 // We need to prepare the Maxmind Reader - This does not load anything just make name refering easier
 use MaxMind\Db\Reader AS MaxMindReader;
 
-namespace Controller;
-
 class Meta {
 
+    private $config = false;
     private $logger;
     private $metaAvailable          = array(
         'geoip'     => false,
@@ -41,22 +42,26 @@ class Meta {
 
             // If enabled, then take KEY and assign the metaavaiable array
             if ( $geo ) {
+                $this->metaAvailable['geoip'] = array();
                 $this->metaAvailable['geoip']['main'] = trim($this->config['geoip']['geoip_main_file']);
                 $this->metaAvailable['geoip']['asn']  = trim($this->config['geoip']['geoip_asn_file']);
                 // Log about it
                 $this->logger->logMessage('[meta] Integration: GeoIP enabled');
             }
             if ( $vt ) {
+                $this->metaAvailable['vt'] = "";
                 $this->metaAvailable['vt'] = trim($this->config['vt']['vt_key']);
                 // Log about it
                 $this->logger->logMessage('[meta] Integration: VirusTotal enabled');
             }
             if ( $abuseipdb ) {
+                $this->metaAvailable['abuseipdb'] = "";
                 $this->metaAvailable['abuseipdb'] = trim($this->config['abuseipdb']['abuseipdb_key']);
                 // Log about it
                 $this->logger->logMessage('[meta] Integration: AbuseIPDB enabled');
             }
             if ( $otx ) {
+                $this->metaAvailable['otx'] = "";
                 $this->metaAvailable['otx'] = trim($this->config['otx']['otx_key']);
                 // Log about it
                 $this->logger->logMessage('[meta] Integration: AlienVault OTX enabled');
@@ -79,6 +84,11 @@ class Meta {
     private function loadConfig() {
         $config = parse_ini_file(__DIR__ . '/../../etc/meta.ini',true);
         return $config;
+    }
+
+    // Function to tell if GEOIP is available
+    public function isGeoIPavailable() {
+        return $this->metaAvailable['geoip'] ? true : false;
     }
 
     // Maxmind GEO IP (main) Lookup
