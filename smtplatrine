@@ -31,8 +31,20 @@ cli_set_process_title("smtplatrine");
 // This is junk, but it works for now.
 require_once 'vendor/autoload.php';
 
+// Get the user info, running this script
+$mainUserInfo = posix_getpwuid(posix_geteuid());
+
+// Setup logging for the main application
+$logger = new \Controller\Logger(basename(__FILE__,'.php'),__NAMESPACE__);
+
+// Setup server handing
+$socketServer = new \Socket\Server;
+
 // Setup signal handling
 $signalHandler = new \Utils\Signals();
+
+// Make the serverObject available to the signal handler
+$signalHandler->setServerObject($socketServer);
 
 // Delcare ticks for signal handling
 declare(ticks=1);
@@ -62,11 +74,7 @@ pcntl_signal(SIGSEGV, [$signalHandler, 'doNOTHING']);
 pcntl_signal(SIGCONT, [$signalHandler, 'doNOTHING']);
 //pcntl_signal(SIGSTOP, [$signalHandler, 'doNOTHING']); // This is not catchable
 
-// Get the user info, running this script
-$mainUserInfo = posix_getpwuid(posix_geteuid());
-
-// Setup logging for the main application
-$logger = new \Controller\Logger(basename(__FILE__,'.php'),__NAMESPACE__);
+// Enable logging for this script (not underlying classes)
 $logger->enableDisplay();
 $logger->enableReporting(E_ALL);
 
@@ -119,12 +127,19 @@ if ($non_privileged) {
     }
 }
 
-// Setup the TCP server and SMTP honeypot
-$smtpServer = new \Socket\Server;
-$smtpServer->start();
-$smtpServer->setConnectionHandler('\Socket\ConnectionHandler');
-$smtpServer->listen();
+// Setup the server
+$socketServer->setConnectionHandler('\Socket\ConnectionHandler');
 
-// Send application ENDED log
+// Activate the server and await incoming connections
+$socketServer->start();
+$socketServer->listen();
+
+// Send application ENDED log - Just in case we ever get here
+// But in most cases we will not get here as we exit out of the loop
+// inside different signal handlers before we get here
+
 $logger->logMessage(">>> SMTPLATRINE - Goodbye!");
+
+exit(0);
+
 ?>

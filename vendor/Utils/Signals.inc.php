@@ -5,16 +5,23 @@ namespace Utils;
 class Signals {
 
     private $logger;
+    private $serverObject = false;
 
     // Constructor
     public function __construct() {
         // Setup logging for the main application
         $this->logger = new \Controller\Logger(basename(__FILE__,'.php'),__NAMESPACE__);
+
     }
 
     // Destructor
     public function __destruct() {
         // Nothing to do
+    }
+
+    // Set the server object
+    public function setServerObject($server) {
+        $this->serverObject = $server;
     }
 
     // Handler for SIGINT (^C)
@@ -39,10 +46,23 @@ class Signals {
         exit(0);
     }
 
-    // Handler for SIGHUB
+    // Handler for SIGHUB (RELLOAD)
     public function doSIGHUP($signo) {
+
         // Let's just inform the logs that we are closing down
-        $this->logger->logMessage(">>> SMTPLATRINE RELOAD '".trim($this->signalToString($signo))."' but we did nothing!","WARNING");
+        $this->logger->logMessage(">>> Posix SIGNAL 'HUP' revieved, smtplatrine is reloading server settings","NOTICE");
+        // If we have a server object, reload the config
+        if ( $this->serverObject ) {
+            $this->logger->logMessage(">>> [server] Reloaded config (server.ini)","NOTICE");
+            $this->serverObject->reloadConfig();      // Reload the config
+            $this->logger->logMessage(">>> [server] Reloaded ACL Blacklist entries (IP)","NOTICE");
+            $this->serverObject->reloadACL('ip');     // Reload the IP ACL
+            $this->logger->logMessage(">>> [server] Reloaded ACL Blacklist entries (IP)","NOTICE");
+            $this->serverObject->reloadACL('geo');    // Reload the GEO ACL
+        } else {
+            $this->logger->logMessage(">>> [server] Whoops, could not reload anything ... ","WARNING");
+        }
+        
     }
 
     // Handler for SIGNAL placeholder

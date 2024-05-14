@@ -11,6 +11,7 @@ class Server {
 	protected $connectionHandler;
 	private $logger;
 	private $meta;
+	private $db;
 	private $config = false;
 
 	private $acl_blacklist_ip = array();
@@ -27,6 +28,9 @@ class Server {
 
 		// Enable Meta services if we got em
 		$this->meta = new \Controller\Meta;
+
+		// Load up Database functionality
+        $this->db = new \Controller\Database;
 
 		$this->listenLoop = false;
 		if ( $this->config === false ) {
@@ -68,6 +72,11 @@ class Server {
     private function loadConfig() {
         $config = parse_ini_file(__DIR__ . '/../../etc/server.ini',true);
         return $config;
+    }
+
+	// Reload config file from etc
+    public function reloadConfig() {
+        $this->config = $this->loadConfig();
     }
 
 	// Start the server
@@ -208,6 +217,39 @@ class Server {
 		}
     }
 
+	// Initiate refresh of ACL public
+	public function reloadACL( $blacklist = false ) {
+		switch ( strtolower(trim($blacklist)) ) {
+			case "ip":
+				if ( array_key_exists('protection_acl_blacklist_ip',$this->config['protection']) ) {
+					if ( trim($this->config['protection']['protection_acl_blacklist_ip']) == "1" ) {
+						$this->refreshACL($blacklist);
+					}
+				}
+				break;
+			case "geo":
+				if ( array_key_exists('protection_acl_blacklist_geo',$this->config['protection']) ) {
+					if ( trim($this->config['protection']['protection_acl_blacklist_geo']) == "1" ) {
+						$this->refreshACL($blacklist);
+					}
+				}
+				break;
+			case "all":
+				if ( array_key_exists('protection_acl_blacklist_ip',$this->config['protection']) ) {
+					if ( trim($this->config['protection']['protection_acl_blacklist_ip']) == "1" ) {
+						$this->refreshACL($blacklist);
+					}
+				}
+				if ( array_key_exists('protection_acl_blacklist_geo',$this->config['protection']) ) {
+					if ( trim($this->config['protection']['protection_acl_blacklist_geo']) == "1" ) {
+						$this->refreshACL($blacklist);
+					}
+				}
+				break;
+		}
+		
+	}
+
 	// Refresh ACL array from DB
 	private function refreshACL( $blacklist = false ) {
 		if ( $blacklist ) {
@@ -239,15 +281,15 @@ class Server {
 	}
 
 	// Get blacklist from database
+	// For now we use the quick and dirty way to get the blacklist by running SQL queries directly against the database
+	// But in the long term we should use prepared statements and a more secure way to get the data
 	private function getBlacklist( $blacklist = "ip" ) {
 		$blacklistArray = array();
-		// Load up Database functionality
-        $db = new \Controller\Database;
-
+		
 		switch( $blacklist ) {
 			case "ip":
 				$query = "SELECT ip_addr FROM acl_blacklist_ip";
-				$result = $db->dbMysqlRawQuery($query);
+				$result = $this->db->dbMysqlRawQuery($query, true, false); // Query, Return, No logging
 				if ( mysqli_num_rows($result) > 0 ) {
 					while( $row = mysqli_fetch_assoc($result) ) {
 						$blacklistArray[] = $row['ip_addr'];
@@ -257,7 +299,7 @@ class Server {
 				break;
 			case "geo":
 				$query = "SELECT geo_code FROM acl_blacklist_geo";
-				$result = $db->dbMysqlRawQuery($query);
+				$result = $this->db->dbMysqlRawQuery($query, true, false); // Query, Return, No logging
 				if ( mysqli_num_rows($result) > 0 ) {
 					while( $row = mysqli_fetch_assoc($result) ) {
 						$blacklistArray[] = strtoupper(trim($row['geo_code']));
@@ -289,6 +331,8 @@ class Server {
 				if ( filter_var($value, FILTER_VALIDATE_IP) ) {
 					if ( in_array($value,$this->acl_blacklist_ip) ) {
 						$this->logger->logMessage('[server] Blacklisted IP tried to connect: '.$value.' (Protection: enabled)', 'NOTICE');
+						$query = "SELECT geo_code FROM acl_blacklist_geo";
+						$this->db->blacklistUpdateEntry('ip',$value);
 						return true;
 					}
 				}
@@ -298,6 +342,7 @@ class Server {
 					$value = strtoupper($value);
 					if ( in_array($value,$this->acl_blacklist_geo) ) {
 						$this->logger->logMessage('[server] Blacklisted Country tried to connect: '.$value.' (Protection: enabled)', 'NOTICE');
+						$this->db->blacklistUpdateEntry('geo',$value);
 						return true;
 					}
 				}
