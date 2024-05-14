@@ -50,7 +50,7 @@ Just import it as any other SQL file dump :) Either from terminal/cli or via you
 ```shell
 cd /path/to/smtplatrine
 cd contrib
-mysql -u username -p < smtplatrine_database_scratch.sql
+mysql -u root -p < smtplatrine_database_scratch.sql
 ```
 
 ## Setting up Maxmind on Debian (Quick way)

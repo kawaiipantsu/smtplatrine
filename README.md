@@ -49,6 +49,33 @@
 
 ## 🪄 How to install
 
+This is just a crude guide i wrote the steps down that i did on a fresh Debian 12 install.
+
+```shell
+apt-get install mariadb-server apache2 nano
+apt-get install geoipupdate multitail
+apt-get install php8.2 php8.2-mysqli php-maxminddb php8.2-maxminddb php-mailparse php8.2-mailparse
+
+cd /opt
+git clone https://github.com/kawaiipantsu/smtplatrine
+
+cd smtplatrine
+
+cp etc/database.example.ini etc/database.ini
+cp etc/meta.example.ini etc/meta.ini
+
+mysql -u root -p < contrib/smtplatrine_database_scratch.sql
+nano etc/database.ini
+chmod 755 smtplatrine
+
+cp contrib/smtplatrine.service /etc/systemd/system
+nano /etc/systemd/system/smtplatrine.service
+systemctl daemon-reload
+
+systemctl start smtplatrine.service
+systemctl status smtplatrine.service
+```
+
 ## 💡 How to run
 
 ## ⚙️ Configuaration
