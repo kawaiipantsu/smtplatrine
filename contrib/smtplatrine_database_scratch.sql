@@ -28,6 +28,7 @@
 /*!40101 SET @OLD_SQL_MODE=@@SQL_MODE, SQL_MODE='NO_AUTO_VALUE_ON_ZERO' */;
 /*!40111 SET @OLD_SQL_NOTES=@@SQL_NOTES, SQL_NOTES=0 */;
 
+DROP DATABASE IF EXISTS `smtplatrine`;
 CREATE DATABASE IF NOT EXISTS `smtplatrine` /*!40100 DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci */;
 USE `smtplatrine`;
 
@@ -52,7 +53,7 @@ CREATE TABLE IF NOT EXISTS `acl_blacklist_ip` (
 DROP TABLE IF EXISTS `honeypot_attachments`;
 CREATE TABLE IF NOT EXISTS `honeypot_attachments` (
   `attachments_email` int(11) NOT NULL,
-  `attachments_uuid` uuid NOT NULL,
+  `attachments_uuid` varchar(36) NOT NULL DEFAULT '',
   `attachments_filename` varchar(128) NOT NULL,
   `attachments_size` int(11) NOT NULL DEFAULT 0,
   `attachments_mimetype` varchar(50) NOT NULL,
@@ -103,13 +104,13 @@ CREATE TABLE IF NOT EXISTS `honeypot_emails` (
   `id` int(11) NOT NULL AUTO_INCREMENT COMMENT 'Main uniqe ID to identify a email',
   `emails_client_ip` varchar(32) NOT NULL,
   `emails_client_port` int(11) NOT NULL DEFAULT 0,
-  `emails_recipients` longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_bin NOT NULL DEFAULT '[]' COMMENT 'Must be JSON',
+  `emails_recipients` longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_bin NOT NULL COMMENT 'Must be JSON',
   `emails_queue_id` varchar(12) NOT NULL DEFAULT '0',
   `emails_server_hostname` varchar(128) NOT NULL DEFAULT '0',
   `emails_server_listning` varchar(36) NOT NULL DEFAULT '0',
   `emails_server_port` int(11) NOT NULL DEFAULT 0,
   `emails_server_system` varchar(128) NOT NULL DEFAULT '0',
-  `emails_header_received` longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_bin NOT NULL DEFAULT '[]' COMMENT 'Must be JSON',
+  `emails_header_received` longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_bin NOT NULL COMMENT 'Must be JSON',
   `emails_header_date` timestamp NOT NULL DEFAULT '0000-00-00 00:00:00',
   `emails_header_to` varchar(512) NOT NULL DEFAULT '0',
   `emails_header_from` varchar(128) NOT NULL DEFAULT '0',
@@ -122,7 +123,7 @@ CREATE TABLE IF NOT EXISTS `honeypot_emails` (
   `emails_header_organization` varchar(128) NOT NULL DEFAULT '0',
   `emails_header_content_type` varchar(128) NOT NULL DEFAULT '0',
   `emails_header_content_transfer_encoding` varchar(25) NOT NULL DEFAULT '0',
-  `emails_attachments` longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_bin NOT NULL DEFAULT '[]' COMMENT 'Must be JSON',
+  `emails_attachments` longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_bin NOT NULL COMMENT 'Must be JSON',
   `emails_body_text` longtext NOT NULL DEFAULT '',
   `emails_body_html` longtext NOT NULL DEFAULT '',
   PRIMARY KEY (`id`),
@@ -150,7 +151,7 @@ CREATE TABLE IF NOT EXISTS `meta_abuseipdb` (
   `abuseipdb_ip_addr` varchar(36) NOT NULL,
   `abuseipdb_ip_version` enum('IPv4','IPv6') NOT NULL DEFAULT 'IPv4',
   `abuseipdb_domain` varchar(128) NOT NULL,
-  `abuseipdb_hostnames` longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_bin NOT NULL DEFAULT '[]' COMMENT 'Must be JSON',
+  `abuseipdb_hostnames` longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_bin NOT NULL COMMENT 'Must be JSON',
   `abuseipdb_is_public` enum('Yes','No') NOT NULL DEFAULT 'Yes',
   `abuseipdb_is_tor` enum('Yes','No') NOT NULL DEFAULT 'No',
   `abuseipdb_is_whitelisted` enum('Yes','No') NOT NULL DEFAULT 'No',
@@ -171,18 +172,18 @@ CREATE TABLE IF NOT EXISTS `meta_otx` (
   `otx_namespace` varchar(20) NOT NULL,
   `otx_predicate` varchar(20) NOT NULL,
   `otx_pulse_count` int(11) DEFAULT 0,
-  `otx_pulses` longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_bin NOT NULL DEFAULT '[]' COMMENT 'Must be JSON',
+  `otx_pulses` longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_bin NOT NULL COMMENT 'Must be JSON',
   PRIMARY KEY (`otx_client_ip`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci COMMENT='All data pulled from AlienVault OTX is kept here just so we dont clutter up the big emails table with even more data';
 
 DROP TABLE IF EXISTS `meta_virustotal`;
 CREATE TABLE IF NOT EXISTS `meta_virustotal` (
-  `vt_attachment` uuid NOT NULL,
+  `vt_attachment` varchar(36) NOT NULL,
   `vt_scan_date` datetime NOT NULL,
   `vt_positives` int(11) NOT NULL DEFAULT 0,
   `vt_total` int(11) NOT NULL DEFAULT 0,
   `vt_permalink` varchar(128) NOT NULL DEFAULT '',
-  `vt_scans` longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_bin NOT NULL DEFAULT '[]' COMMENT 'Must be JSON',
+  `vt_scans` longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_bin NOT NULL COMMENT 'Must be JSON',
   PRIMARY KEY (`vt_attachment`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci COMMENT='All data pulled from Virustotal is kept here just so we dont clutter up the big emails table with even more data';
 
@@ -195,9 +196,9 @@ CREATE TABLE IF NOT EXISTS `stats` (
   `total_data_processed` int(11) NOT NULL DEFAULT 0,
   `total_clients` int(11) NOT NULL DEFAULT 0,
   `uniqe_email_adresses` int(11) NOT NULL DEFAULT 0,
-  `list_xmailers_seen` longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_bin NOT NULL DEFAULT '[]' COMMENT 'Must be JSON',
-  `list_useragent_seen` longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_bin NOT NULL DEFAULT '[]' COMMENT 'Must be JSON',
-  `list_mimetypes_seen` longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_bin NOT NULL DEFAULT '[]' COMMENT 'Must be JSON'
+  `list_xmailers_seen` longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_bin NOT NULL COMMENT 'Must be JSON',
+  `list_useragent_seen` longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_bin NOT NULL COMMENT 'Must be JSON',
+  `list_mimetypes_seen` longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_bin NOT NULL COMMENT 'Must be JSON'
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci COMMENT='Table that holds some fun stats, so we dont have to make big queries cross many tables';
 
 /*!40103 SET TIME_ZONE=IFNULL(@OLD_TIME_ZONE, 'system') */;
