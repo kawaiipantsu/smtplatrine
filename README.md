@@ -83,9 +83,11 @@ I have tied to make this a very feature rich smtp honeypot - Or at least that's 
   - TEXT
   - HTML
 - Collecting client connection info
+  - IP address, Communications ports
+  - Reverse DNS
   - Enriching IP with GEO location details
   - Enriching IP with ASN details
-- 
+
 ### Why?
 
 I made smtplatrine as i wanted to keep myself entertained. Both hunting for threatactors but also with developing something while learning/refreshing protocol and networking. Building a honeypot is just the thing. And i love to collect and analyze data. So this is the best thing to do :D
