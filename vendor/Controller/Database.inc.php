@@ -22,7 +22,7 @@ class Database {
     private $mysqlReporting = MYSQLI_REPORT_ERROR | MYSQLI_REPORT_STRICT;
     private $config = false;
 
-    // Contructor
+    // Constructor
     public function __construct( $reuseConnection = false ) {
         // Setup vendor logger
         $this->logger = new \Controller\Logger(basename(__FILE__,'.inc.php'),__NAMESPACE__);
@@ -270,7 +270,7 @@ class Database {
             $query .= ")";
             $query .= " ON DUPLICATE KEY UPDATE recipients_seen = recipients_seen + 1";
 
-            // Do the query (INSER so it will return the ID of the row if it's a new one)
+            // Do the query (INSERT so it will return the ID of the row if it's a new one)
             $rowID = $this->dbMysqlRawQuery($query,false,false); // Query, No return sql resource, No logging
             return $rowID;
         }
@@ -282,7 +282,7 @@ class Database {
         // Establish a connection to the database
         $this->dbMysqlConnect();
 
-        $clientIP = trim($clientIP);  // Not really needed, but easy way to inject/overwride for testing
+        $clientIP = trim($clientIP);  // Not really needed, but easy way to inject/override for testing
 
         // Geo information
         if ( $this->meta->isGeoIPavailable() ) {
@@ -447,7 +447,7 @@ class Database {
 
         if ( $this->dbConnected ) {
 
-            // This is the finalFiels array that will be used in the query
+            // This is the finalFields array that will be used in the query
             $finalFields = [];
 
             // Rebuild smtp_recipients to be a json array from the array it contains
@@ -457,7 +457,7 @@ class Database {
                 $fields['emails_recipients'] = array();
                 if ( $recipients && is_array($recipients) ) {
                     foreach ( $recipients as $recipient ) {
-                        // Clean up if email is inse < > or other characters
+                        // Clean up if email is in < > or other characters
                         $recipient = trim($recipient);
                         $recipient = str_replace('<','',$recipient);
                         $recipient = str_replace('>','',$recipient);
@@ -467,7 +467,7 @@ class Database {
                         $fields['emails_recipients'][] = $recipientID;
                     }
                 } else {
-                    // Clean up if email is inse < > or other characters
+                    // Clean up if email is in < > or other characters
                     $recipient = trim($recipients);
                     $recipient = str_replace('<','',$recipient);
                     $recipient = str_replace('>','',$recipient);
@@ -497,7 +497,7 @@ class Database {
                     case 'emails_client_ip':
                     case 'emails_queue_id':
                     case 'emails_server_hostname':
-                    case 'emails_server_listning':
+                    case 'emails_server_listening':
                     case 'emails_server_system':
                     case 'emails_header_to':
                     case 'emails_header_from':

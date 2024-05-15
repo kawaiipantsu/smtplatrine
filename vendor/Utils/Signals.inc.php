@@ -38,7 +38,7 @@ class Signals {
     // Handler for SIGTERM
     public function doSIGTERM($signo) {
         // Let's just inform the logs that we are closing down
-        $this->logger->logMessage(">>> Posix SIGNAL recieved '".trim($this->signalToString($signo))."' - Goodbye","WARNING");
+        $this->logger->logMessage(">>> Posix SIGNAL received '".trim($this->signalToString($signo))."' - Goodbye","WARNING");
         $this->logger->logMessage('[server] Stopped listening for connections');
         $this->logger->logMessage('[server] EXIT=0');
         $this->logger->logMessage(">>> SMTPLATRINE - Goodbye!");
@@ -50,7 +50,7 @@ class Signals {
     public function doSIGHUP($signo) {
 
         // Let's just inform the logs that we are closing down
-        $this->logger->logMessage(">>> Posix SIGNAL 'HUP' revieved, smtplatrine is reloading server settings","NOTICE");
+        $this->logger->logMessage(">>> Posix SIGNAL 'HUP' received, smtplatrine is reloading server settings","NOTICE");
         // If we have a server object, reload the config
         if ( $this->serverObject ) {
             $this->logger->logMessage(">>> [server] Reloaded config (server.ini)","NOTICE");
@@ -68,10 +68,10 @@ class Signals {
     // Handler for SIGNAL placeholder
     public function doNOTHING($signo) {
         // Let's just inform the logs about a signal we are ignoring
-        $this->logger->logMessage(">>> Posix SIGNAL recieved '".trim($this->signalToString($signo))."' we did nothing!","WARNING");
+        $this->logger->logMessage(">>> Posix SIGNAL received '".trim($this->signalToString($signo))."' we did nothing!","WARNING");
     }
 
-    // Make a function that converts the integer of a signal into a meaningfull string.
+    // Make a function that converts the integer of a signal into a meaningful string.
     // These are the signals: SIGINT,SIGTERM,SIGQUIT,SIGKILL,SIGHUP,SIGCHLD,SIG_IGN,SIGUSR1,SIGUSR2,SIGALRM,SIGSEGV,SIGCONT, SIGSTOP
     private function signalToString($signo) {
         switch($signo) {

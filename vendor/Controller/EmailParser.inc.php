@@ -50,7 +50,7 @@ class EmailParser {
         // Continue if we have a valid format
         if ( $this->canParse ) {
 
-            // Using PHP extentions Mailparse
+            // Using PHP extensions Mailparse
             $this->mimeObject = mailparse_msg_create();
             if ( mailparse_msg_parse($this->mimeObject,$rawmail) ) {
                 $this->logger->logDebugMessage('[EmailParser] Beginning to parse email eml');
@@ -81,7 +81,7 @@ class EmailParser {
                     // If Attachment
                     if ( isset($part_data['content-disposition']) && $part_data['content-disposition'] == 'attachment' ) {
 
-                        // Extract filename from content-disponition or content-name, and store in attachments array
+                        // Extract filename from content-disposition or content-name, and store in attachments array
                         $filename = "";
                         if ( isset($part_data['disposition-filename']) ) {
                             $filename = $part_data['disposition-filename'];

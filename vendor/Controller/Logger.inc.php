@@ -11,7 +11,7 @@ class Logger {
     private $fullName = false;
     private $pidTitle = false;
     
-    // Contructor
+    // Constructor
     public function __construct($logName='logger', $namespace=__NAMESPACE__) {
 
         // Set namespace

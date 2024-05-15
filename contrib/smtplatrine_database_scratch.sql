@@ -107,7 +107,7 @@ CREATE TABLE IF NOT EXISTS `honeypot_emails` (
   `emails_recipients` longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_bin NOT NULL COMMENT 'Must be JSON',
   `emails_queue_id` varchar(12) NOT NULL DEFAULT '0',
   `emails_server_hostname` varchar(128) NOT NULL DEFAULT '0',
-  `emails_server_listning` varchar(36) NOT NULL DEFAULT '0',
+  `emails_server_listening` varchar(36) NOT NULL DEFAULT '0',
   `emails_server_port` int(11) NOT NULL DEFAULT 0,
   `emails_server_system` varchar(128) NOT NULL DEFAULT '0',
   `emails_header_received` longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_bin NOT NULL COMMENT 'Must be JSON',
@@ -129,6 +129,15 @@ CREATE TABLE IF NOT EXISTS `honeypot_emails` (
   PRIMARY KEY (`id`),
   KEY `fk_emails_client_ip` (`emails_client_ip`) USING BTREE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci COMMENT='This table will consist of all mails recieved via the SMTP honeypot';
+
+DROP TABLE IF EXISTS `honeypot_rawmail`;
+CREATE TABLE IF NOT EXISTS `honeypot_rawmail` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `rawmail_data` longtext NOT NULL,
+  `rawmail_received` timestamp NULL DEFAULT current_timestamp(),
+  `rawmail_keep` enum('Keep','Unseen','Seen','Delete') NOT NULL DEFAULT 'Unseen',
+  PRIMARY KEY (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci COMMENT='This table will hold a backup of the complete raw email recieved by the client, please note this can take up space and should be cleaned up regularly see contrib';
 
 DROP TABLE IF EXISTS `honeypot_recipients`;
 CREATE TABLE IF NOT EXISTS `honeypot_recipients` (
@@ -195,7 +204,7 @@ CREATE TABLE IF NOT EXISTS `stats` (
   `total_attachments` int(11) NOT NULL DEFAULT 0,
   `total_data_processed` int(11) NOT NULL DEFAULT 0,
   `total_clients` int(11) NOT NULL DEFAULT 0,
-  `uniqe_email_adresses` int(11) NOT NULL DEFAULT 0,
+  `unique_email_addresses` int(11) NOT NULL DEFAULT 0,
   `list_xmailers_seen` longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_bin NOT NULL COMMENT 'Must be JSON',
   `list_useragent_seen` longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_bin NOT NULL COMMENT 'Must be JSON',
   `list_mimetypes_seen` longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_bin NOT NULL COMMENT 'Must be JSON'

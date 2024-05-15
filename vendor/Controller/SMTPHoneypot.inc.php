@@ -110,10 +110,10 @@ class SMTPHoneypot {
         $this->emailEML .= trim($header).": ".trim($value)."\r\n";
     }
 
-    // Create the Recieved email EML initial header
+    // Create the Received email EML initial header
     private function buildReceivedHeader( $oldData = "" ) {
 
-        // oldData will be the orginal mail DATA as delivered to the SMTP server (honeypot)
+        // oldData will be the original mail DATA as delivered to the SMTP server (honeypot)
         // We will use this to add the original Received headers to the new email EML below our own
 
         // Set default values for our Received header
@@ -152,7 +152,7 @@ class SMTPHoneypot {
             $this->emailEML .= "Delivered-To: ".$rcpt."\r\n";
         }
 
-        // SMTP Recieved headers
+        // SMTP Received headers
         // TODO: Check if there already is a Received header or multiple, in either case
         //       we should add ours as the last one in the chain (top of the eml)
         $this->emailEML .= $this->buildReceivedHeader($this->emailData);
@@ -209,7 +209,7 @@ class SMTPHoneypot {
 
             // Second check that we always get MAIL FROM
             if ( count($validateCommands) == 2 ) {
-                // Next up is MAIL FROM or AUTH (if recieved!)
+                // Next up is MAIL FROM or AUTH (if received!)
                 if ( $validateCommands[1] == 'MAIL FROM' || $validateCommands[1] == 'AUTH' ) {
                     return true;
                 }
@@ -289,7 +289,7 @@ class SMTPHoneypot {
         // Log SMTP DATA (DEBUG) if not empty
         $dataLog = $data;
         if ( $dataLog && $dataLog != "" ) {
-            $this->logger->logDebugMessage("[smtp] Recieved DATA (".strlen($dataLog)." bytes)");
+            $this->logger->logDebugMessage("[smtp] Received DATA (".strlen($dataLog)." bytes)");
             //$this->logger->logDebugMessage("[smtp] : ".$dataLog);
         }
         // Update last line
@@ -386,10 +386,10 @@ class SMTPHoneypot {
         }
 
         // Log SMTP command and argument (DEBUG)
-        if ( $command && $command != "UNKNOWN" ) $this->logger->logDebugMessage("[smtp] Recieved command: ".trim($command));
-        if ($argument) $this->logger->logDebugMessage("[smtp] Recieved argument: ".trim($argument));
+        if ( $command && $command != "UNKNOWN" ) $this->logger->logDebugMessage("[smtp] Received command: ".trim($command));
+        if ($argument) $this->logger->logDebugMessage("[smtp] Received argument: ".trim($argument));
 
-        // Create action to return based on SMTP command via switch cases and use reply for anwsers
+        // Create action to return based on SMTP command via switch cases and use reply for answers
         switch ( $command ) {
             case 'HELO':
                 $this->addCommandSequence($command); // Important command, Add to sequence array
@@ -459,7 +459,7 @@ class SMTPHoneypot {
             // Command sequence check
             $status = $this->checkCommandSequence();
             if ( !$status ) {
-                // Remove command from sequence arary
+                // Remove command from sequence array
                 $this->delCommandSequence($command);
                 // Make sure we are not in DATA mode
                 $this->setSMTPDATAmode(false);
@@ -480,12 +480,12 @@ class SMTPHoneypot {
         return $output;
     }
 
-    // fucntion to handle closing connection to early
+    // function to handle closing connection to early
     public function closeConnection() {
         return $this->reply(false,421);
     }
 
-    // fucntion to handle closing connection to early
+    // function to handle closing connection to early
     public function closeConnectionToManyConnections() {
         return $this->reply(" Sorry i'm to busy to handle more connections. Goodbye.",421);
     }
@@ -505,7 +505,7 @@ class SMTPHoneypot {
             450 => '450 Requested mail action not taken: mailbox unavailable',
             451 => '451 Requested action aborted: local error in processing',
             452 => '452 Requested action not taken: insufficient system storage',
-            500 => '500 Syntax error, command unrecognised',
+            500 => '500 Syntax error, command unrecognized',
             501 => '501 Syntax error in parameters or arguments',
             502 => '502 Command not implemented',
             503 => '503 Bad sequence of commands',

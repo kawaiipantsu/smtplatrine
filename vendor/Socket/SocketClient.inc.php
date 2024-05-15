@@ -61,13 +61,13 @@ class SocketClient {
     }
 
     // Socket Client Read data
-    public function read( $overideBufferSize = false ) {
+    public function read( $overrideBufferSize = false ) {
 
         // Set buffer size
-        if ( $overideBufferSize === false ) {
+        if ( $overrideBufferSize === false ) {
             $len = $this->defaultBufferSize;
         } else {
-            $len = intval($overideBufferSize);
+            $len = intval($overrideBufferSize);
         }
 
         if ( ( $buf = @socket_read( $this->connection, $len, PHP_BINARY_READ  ) ) === false ) {

@@ -102,7 +102,7 @@ class Server {
 
 	// Before server loop
 	protected function beforeServerLoop() {
-		$this->logger->logMessage('[server] Listning on ' . $this->address . ':' . $this->port . ' ...');
+		$this->logger->logMessage('[server] Listening on ' . $this->address . ':' . $this->port . ' ...');
 	}
 
 	// Set connection handler
@@ -375,7 +375,7 @@ class Server {
 				SocketException::CANT_BIND, socket_strerror(socket_last_error( $this->server ) ) 
 			);
 		}
-		$this->logger->logDebugMessage('[server] Socket binded to ' . $this->address . ':' . $this->port);
+		$this->logger->logDebugMessage('[server] Socket bound to ' . $this->address . ':' . $this->port);
 	}
 
 }

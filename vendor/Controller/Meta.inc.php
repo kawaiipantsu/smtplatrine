@@ -3,7 +3,7 @@
 namespace Controller;
 
 // As we want to use GEO information if Geo ACL protection is loaded
-// We need to prepare the Maxmind Reader - This does not load anything just make name refering easier
+// We need to prepare the Maxmind Reader - This does not load anything just make name referring easier
 use MaxMind\Db\Reader AS MaxMindReader;
 
 class Meta {
@@ -17,7 +17,7 @@ class Meta {
         'otx'       => false
     );
 
-    // Contructor
+    // Constructor
     public function __construct() {
         // Setup vendor logger
         $this->logger = new \Controller\Logger(basename(__FILE__,'.inc.php'),__NAMESPACE__);

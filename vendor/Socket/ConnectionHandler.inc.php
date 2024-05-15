@@ -26,7 +26,7 @@ class connectionHandler {
         // Load up Database functionality
         $this->db = new \Controller\Database;
 
-        // Load up SMTP Honeypot functionaility
+        // Load up SMTP Honeypot functionality
         $this->smtp = new \Controller\SMTPHoneypot;
 
         // Read config if not already loaded
@@ -152,13 +152,13 @@ class connectionHandler {
             //if ( empty($read) === false ) {
             if ( $read != '' ) {
                 
-                // THIS IS THE MAIN LOOP TO PROESS INCOMING DATA
+                // THIS IS THE MAIN LOOP TO PROCESS INCOMING DATA
                 // As this is a SMTP Honeypot, we shift to a mixture of SMTP and DATA mode
-                // Also remember the SMTP protocol, even if we are "done" and recieve a mail
-                // to emulate sending, the connetion will still be alive until the client 
+                // Also remember the SMTP protocol, even if we are "done" and receive a mail
+                // to emulate sending, the connection will still be alive until the client 
                 // sends a QUIT command!
 
-                // Controle - Check if we are inside SMTP DATA mode
+                // Controls - Check if we are inside SMTP DATA mode
                 if ( $this->smtp->getSMTPDATAmode() ) {
 
                     // Since this should be DATA, parse it as such!
@@ -172,7 +172,7 @@ class connectionHandler {
                         $client->send($dataStatus);
 
                         // Detect if the holy grail happened - That someone actually tried to relay mail and we got a 250 OK
-                        // This is a honeypot gratest moment, any security hunter would be proud of this moment :D
+                        // This is a honeypot greatest moment, any security hunter would be proud of this moment :D
                         if ( preg_match('/^250 Ok: queued as /i',$dataStatus) ) {
 
                             // Log that things went successful
@@ -182,7 +182,7 @@ class connectionHandler {
                             // EML = Electronic Mail Message
                             $mailData = $this->smtp->getEmailEML();
 
-                            // It's happend !
+                            // It's happened !
                             // Now let's parse the data and store it in the database for further analysis
                             // Time to reep the rewards of our honeypot!
                             $result = $this->handleResult($client, $mailData);
@@ -197,14 +197,14 @@ class connectionHandler {
 
                     // Since we are NOT in the DATA mode, we are in regular SMTP command mode
                     // So let's parse what ever the client connected inputs and simulate SMTP commands responses
-                    // The command line interpeter will always return a reply to the client!
+                    // The command line interpreter will always return a reply to the client!
                     $response = $this->smtp->parseCommand($read);
 
                     // Based on what the client sent, we can now send a reply back to the client
                     if ( $response ) {
 
                         // Little trick to handle multiple responses, ie. if the SMTP protocol
-                        // reuiqres us to send multiple consecutive responses
+                        // requires us to send multiple consecutive responses
                         if ( is_array($response) ) {
 
                             // Send multiple responses to client
@@ -214,7 +214,7 @@ class connectionHandler {
 
                         } else {
 
-                            // Send single reponse to client
+                            // Send single response to client
                             $client->send($response);
                         
                         }
@@ -313,7 +313,7 @@ class connectionHandler {
 
                 $this->logger->logDebugMessage('['.$client->getPeerAddress().'] Storing email data in database');
                 
-                // Special switch case to catch multiways of useragents key name in headers
+                // Special switch case to catch multimap of useragent key name in headers
                 $useragent = '';
                 if ( array_key_exists('user-agent',$result['headers']) ) {
                     $useragent = $result['headers']['user-agent'];
@@ -331,7 +331,7 @@ class connectionHandler {
                     'emails_client_port'                      => array_key_exists('x-latrine-client-port',$result['headers']) ? $result['headers']['x-latrine-client-port'] : $client->getPeerPort(),
                     'emails_server_port'                      => array_key_exists('x-latrine-server-port',$result['headers']) ? $result['headers']['x-latrine-server-port'] : $client->getPort(),
                     'emails_server_hostname'                  => array_key_exists('x-latrine-server-hostname',$result['headers']) ? $result['headers']['x-latrine-server-hostname'] : gethostname(),
-                    'emails_server_listning'                  => array_key_exists('x-latrine-server-listen',$result['headers']) ? $result['headers']['x-latrine-server-listen'] : $client->getPeerAddress(),
+                    'emails_server_listening'                 => array_key_exists('x-latrine-server-listen',$result['headers']) ? $result['headers']['x-latrine-server-listen'] : $client->getPeerAddress(),
                     'emails_server_system'                    => array_key_exists('x-latrine-server-system',$result['headers']) ? $result['headers']['x-latrine-server-system'] : php_uname(),
                     'emails_queue_id'                         => array_key_exists('x-latrine-queue-id',$result['headers']) ? $result['headers']['x-latrine-queue-id'] : '',
                     'emails_header_to'                        => array_key_exists('to',$result['headers']) ? $result['headers']['to'] : '',

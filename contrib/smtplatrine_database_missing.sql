@@ -15,7 +15,7 @@
 --  (c) 2024 - THUGSred            ||     ___,-\__..__|__
 -- ---------------------------------------------------------------
 -- NON DESTRUCTIVE SQL DUMP - You need to supply a database name
--- It will however drop the tables if they exist
+-- This will only add tables if they are missing!
 -- ---------------------------------------------------------------
 
 /*!40101 SET @OLD_CHARACTER_SET_CLIENT=@@CHARACTER_SET_CLIENT */;
@@ -27,7 +27,6 @@
 /*!40101 SET @OLD_SQL_MODE=@@SQL_MODE, SQL_MODE='NO_AUTO_VALUE_ON_ZERO' */;
 /*!40111 SET @OLD_SQL_NOTES=@@SQL_NOTES, SQL_NOTES=0 */;
 
-DROP TABLE IF EXISTS `acl_blacklist_geo`;
 CREATE TABLE IF NOT EXISTS `acl_blacklist_geo` (
   `geo_code` varchar(2) NOT NULL,
   `geo_added` timestamp NOT NULL DEFAULT current_timestamp(),
@@ -36,7 +35,6 @@ CREATE TABLE IF NOT EXISTS `acl_blacklist_geo` (
   PRIMARY KEY (`geo_code`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci COMMENT='Any Country code added to this list will be blacklisted from using the service. Country code is 2 chars (CC)';
 
-DROP TABLE IF EXISTS `acl_blacklist_ip`;
 CREATE TABLE IF NOT EXISTS `acl_blacklist_ip` (
   `ip_addr` varchar(32) NOT NULL,
   `ip_added` timestamp NOT NULL DEFAULT current_timestamp(),
@@ -45,7 +43,6 @@ CREATE TABLE IF NOT EXISTS `acl_blacklist_ip` (
   PRIMARY KEY (`ip_addr`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci COMMENT='Any IP added to this list will be blacklisted from using the service';
 
-DROP TABLE IF EXISTS `honeypot_attachments`;
 CREATE TABLE IF NOT EXISTS `honeypot_attachments` (
   `attachments_email` int(11) NOT NULL,
   `attachments_uuid` varchar(36) NOT NULL DEFAULT '',
@@ -61,7 +58,6 @@ CREATE TABLE IF NOT EXISTS `honeypot_attachments` (
   KEY `attachment_uuid` (`attachments_uuid`) USING BTREE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci COMMENT='This table will hold all attachments seen in the emails';
 
-DROP TABLE IF EXISTS `honeypot_clients`;
 CREATE TABLE IF NOT EXISTS `honeypot_clients` (
   `clients_ip` varchar(32) NOT NULL,
   `clients_hostname` varchar(256) DEFAULT NULL,
@@ -85,7 +81,6 @@ CREATE TABLE IF NOT EXISTS `honeypot_clients` (
   KEY `smtp_client_hostname` (`clients_hostname`) USING BTREE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci COMMENT='This table will hold all IP realted info for the client connecting to the honeypot';
 
-DROP TABLE IF EXISTS `honeypot_credentials`;
 CREATE TABLE IF NOT EXISTS `honeypot_credentials` (
   `credentials_email` int(11) NOT NULL,
   `credentials_type` enum('NONE','UNKNOWN','LOGIN','PLAIN','CRAM-MD5','DIGEST-MD5','NTLM','GSSAPI','XOAUTH','XOAUTH2') DEFAULT 'NONE',
@@ -94,7 +89,6 @@ CREATE TABLE IF NOT EXISTS `honeypot_credentials` (
   PRIMARY KEY (`credentials_email`) USING BTREE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci COMMENT='Any AUTH credentials seen is listed here';
 
-DROP TABLE IF EXISTS `honeypot_emails`;
 CREATE TABLE IF NOT EXISTS `honeypot_emails` (
   `id` int(11) NOT NULL AUTO_INCREMENT COMMENT 'Main uniqe ID to identify a email',
   `emails_client_ip` varchar(32) NOT NULL,
@@ -125,7 +119,6 @@ CREATE TABLE IF NOT EXISTS `honeypot_emails` (
   KEY `fk_emails_client_ip` (`emails_client_ip`) USING BTREE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci COMMENT='This table will consist of all mails recieved via the SMTP honeypot';
 
-DROP TABLE IF EXISTS `honeypot_rawmail`;
 CREATE TABLE IF NOT EXISTS `honeypot_rawmail` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
   `rawmail_data` longtext NOT NULL,
@@ -134,7 +127,6 @@ CREATE TABLE IF NOT EXISTS `honeypot_rawmail` (
   PRIMARY KEY (`id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci COMMENT='This table will hold a backup of the complete raw email recieved by the client, please note this can take up space and should be cleaned up regularly see contrib';
 
-DROP TABLE IF EXISTS `honeypot_recipients`;
 CREATE TABLE IF NOT EXISTS `honeypot_recipients` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
   `recipients_address` varchar(256) NOT NULL DEFAULT '',
@@ -149,7 +141,6 @@ CREATE TABLE IF NOT EXISTS `honeypot_recipients` (
   KEY `recipients_domain` (`recipients_domain`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci COMMENT='This table holds all seen recipients from the SMTP sessions, we don''t have duplicates however we update a seen count';
 
-DROP TABLE IF EXISTS `meta_abuseipdb`;
 CREATE TABLE IF NOT EXISTS `meta_abuseipdb` (
   `abuseipdb_client_ip` varchar(36) NOT NULL,
   `abuseipdb_ip_addr` varchar(36) NOT NULL,
@@ -170,7 +161,6 @@ CREATE TABLE IF NOT EXISTS `meta_abuseipdb` (
   PRIMARY KEY (`abuseipdb_client_ip`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci COMMENT='All data pulled from AbuseIPDB is kept here just so we dont clutter up the big emails table with even more data';
 
-DROP TABLE IF EXISTS `meta_otx`;
 CREATE TABLE IF NOT EXISTS `meta_otx` (
   `otx_client_ip` varchar(36) NOT NULL,
   `otx_namespace` varchar(20) NOT NULL,
@@ -180,7 +170,6 @@ CREATE TABLE IF NOT EXISTS `meta_otx` (
   PRIMARY KEY (`otx_client_ip`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci COMMENT='All data pulled from AlienVault OTX is kept here just so we dont clutter up the big emails table with even more data';
 
-DROP TABLE IF EXISTS `meta_virustotal`;
 CREATE TABLE IF NOT EXISTS `meta_virustotal` (
   `vt_attachment` varchar(36) NOT NULL,
   `vt_scan_date` datetime NOT NULL,
@@ -191,7 +180,6 @@ CREATE TABLE IF NOT EXISTS `meta_virustotal` (
   PRIMARY KEY (`vt_attachment`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci COMMENT='All data pulled from Virustotal is kept here just so we dont clutter up the big emails table with even more data';
 
-DROP TABLE IF EXISTS `stats`;
 CREATE TABLE IF NOT EXISTS `stats` (
   `total_connections` int(11) NOT NULL DEFAULT 0,
   `total_smtp_commands` int(11) NOT NULL DEFAULT 0,

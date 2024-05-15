@@ -5,7 +5,6 @@
 ## Table of contents
 
 <!-- TOC -->
-<!-- TOC -->
 
 - [ᵔᴥᵔ SMTPLATRINE 📦 CONTRIBS](#%E1%B5%94%E1%B4%A5%E1%B5%94-smtplatrine--contribs)
     - [Table of contents](#table-of-contents)
@@ -21,7 +20,7 @@
         - [Installation steps](#installation-steps)
         - [Check to see if it's running](#check-to-see-if-its-running)
     - [Notes](#notes)
-        - [Graphical/Layout contraints](#graphicallayout-contraints)
+        - [Graphical/Layout contraints](#graphicallayout-constraints)
 
 <!-- /TOC -->
 
@@ -32,13 +31,17 @@ Click any file to go to it directly.
 | Filename | Description |
 |------:|:------|
 | [.multitailrc](.multitailrc) | This is a file for MultiTail with smtplatrine color scheme :)
+| [apache2_vhost.conf](apache2_vhost.conf) | Quick template for creating vhost in Apache2 to smtplatrine
+|[database_test_import.sh](database_test_import.sh) | Quick script to test sql import or to see how it's done
 | [maxmind_geo_test.php](maxmind_geo_test.php) | Quick file to test if your Maxmind setup works
 | [monitor_git_graph.sh](monitor_git_graph.sh) | Script to display GIT Graph visualizing your work while working! |
 | [monitor_listner.sh](monitor_listner.sh) | Script to help you debug networking if the server/clients work |
 | [phpmailer_example.php](phpmailer_example.php) | Script to test sending email's! Really handy! - Quick testing and debug output!
 | [README.md](README.md) | This file duh! |
+| [smtplatrine_database_missing.sql](smtplatrine_database_missing.sql) | SMTPLATRINE Database Template (SQL) - Tables CREATE IF NOT EXIST |
 | [smtplatrine_database_scratch.sql](smtplatrine_database_scratch.sql) | SMTPLATRINE Database Template (SQL) - Only use for clean install |
-| [smtplatrine.service](smtplatrine.service) | Systemd service file for smtplatrine |
+| [smtplatrine_database_tables.sql](smtplatrine_database_tables.sql) | SMTPLATRINE Database Template (SQL) - Tables DROP/CREATE fresh |
+| [smtplatrine.service](smtplatrine.service) | Systemd service file for smtplatrine|
 | [telnet_smtp_example.txt](telnet_smtp_example.txt) | Telnet/SMTP command step by step for sending a mail for reference|
 
 ## SMTPLATRINE Database from scratch!
@@ -55,7 +58,7 @@ mysql -u root -p < smtplatrine_database_scratch.sql
 
 ## Setting up Maxmind on Debian (Quick way)
 
-We need Maxmind GEO support in order to enrich the incoming data but also to enable etc blacklisting of incomming connections based on country. So this is a must on your system in my appinion. Please dont skip, let's make it work :) Gives you such a better experience and stats related to the honeypot.
+We need Maxmind GEO support in order to enrich the incoming data but also to enable etc blacklisting of incoming connections based on country. So this is a must on your system in my opinion. Please don't skip, let's make it work :) Gives you such a better experience and stats related to the honeypot.
 
 ### Install MAxmind geoipupdate
 
@@ -104,7 +107,7 @@ So i made this config file for `multitail` to use it cp it to your home folder's
 ```shell
 cp contrib./multitail ~/
 ```
-**Now then just run it normaly as you would against the file:**
+**Now then just run it normally as you would against the file:**
 
 ```shell
 cd /path/to/smtplatrine
@@ -146,7 +149,7 @@ To see if it's running okay you can use systemd's status command and you should 
 
 **systemd - status of a running smtplatrine**
 ```yml
-# sudo systemd stataus smtplatrine
+# sudo systemd status smtplatrine
 
 ● smtplatrine.service - SMTPLATRINE - A SMTP Honeypot
      Loaded: loaded (/etc/systemd/system/smtplatrine.service; disabled; preset: enabled)
@@ -168,7 +171,7 @@ These notes are just me dotting down random things i need to remember or that i 
 
 Or it might just be what i think is a good idea at the time and therefore want to make sure i don't forget it :D
 
-### Graphical/Layout contraints
+### Graphical/Layout constraints
 
 This is just for my own benefit, i don't think i will get around to work on the actual web page for a long time. So to not forget. The logo and image assets i just whooped up quickly on a online web editor. Has to be fine, it's just a honeypot :D
 

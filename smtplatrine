@@ -82,7 +82,7 @@ $logger->enableReporting(E_ALL);
 $logger->logMessage(">>> SMTPLATRINE - A custom SMTP-Honeypot written in PHP :)");
 
 // Before we start, let's make some sanity checks that we nee to do as "root"
-// Check if we want to run clients in non-priviliged mode and if so do we have the right permissions
+// Check if we want to run clients in non-privileged mode and if so do we have the right permissions
 $_config = parse_ini_file(__DIR__ . '/etc/server.ini',true);
 $non_privileged = trim($_config['server']['server_spawn_clients_as_non_privileged']) == "1" ? true : false;
 $nonPrivUser = $_config['non_privileged']['non_privileged_user'];
@@ -97,7 +97,7 @@ unset($_config);
 
 if ($non_privileged) {
     // We require non-privileged user to be set for the connection handler
-    // Check if file permisions are set correctly
+    // Check if file permissions are set correctly
 
     // Get UID and GID of the user and group
     $_uid = posix_getpwnam($nonPrivUser);
