@@ -276,6 +276,23 @@ class Database {
         }
     }
     
+    // -- INSERT raw EMAIL
+    public function insertRawEmail( $email = false ) {
+        // Establish a connection to the database
+        $this->dbMysqlConnect();
+
+        if ( $this->dbConnected && $email ) {
+            // Prepare the insert query on duplicate key update
+            $query = "INSERT INTO honeypot_rawemails (rawemails_data) VALUES (";
+            $query .= "'".mysqli_real_escape_string($this->db,$email)."'";
+            $query .= ")";
+
+            // Do the query (INSERT so it will return the ID of the row if it's a new one)
+            $rowID = $this->dbMysqlRawQuery($query,false,false); // Query, No return sql resource, No logging
+            return $rowID;
+        }
+    }
+
     // -- INSERT CLIENT IP
     // This should be used early on in the connection handler so we can relate to the associated inserted ID for the Client IP
     public function insertClientIP( $clientIP = false ) {
@@ -541,7 +558,7 @@ class Database {
 
             // If we have finalFields then do the query
             if ( count($finalFields) > 0 ) {
-                $query = "INSERT INTO honeypot_emails    (";
+                $query = "INSERT INTO honeypot_emails (";
                 $query .= implode(',',array_keys($finalFields));
                 $query .= ") VALUES (";
                 foreach ( $finalFields as $key => $value ) {

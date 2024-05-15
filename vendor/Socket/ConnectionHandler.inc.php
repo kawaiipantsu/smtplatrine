@@ -311,7 +311,10 @@ class connectionHandler {
                     $attachments_uuids[] = $attachment['uuid'];
                 }
 
-                $this->logger->logDebugMessage('['.$client->getPeerAddress().'] Storing email data in database');
+                $this->logger->logDebugMessage('['.$client->getPeerAddress().'] Storing raw data in database');
+                $rawID = $this->db->insertRawEmail($data);
+
+                $this->logger->logDebugMessage('['.$client->getPeerAddress().'] Storing email meta data in database');
                 
                 // Special switch case to catch multimap of useragent key name in headers
                 $useragent = '';
@@ -348,6 +351,7 @@ class connectionHandler {
 
                     'emails_body_text' => empty($result['body']['text']) ? '' : $result['body']['text'],
                     'emails_body_html' => empty($result['body']['html']) ? '' : $result['body']['html'],
+                    'emails_rawemails_id' => $rawID,
 
                     'emails_recipients' => $result['headers']['delivered-to'],                  // This will be handled inside storeEmail function
                     'emails_header_received' => json_encode($result['headers']['received']),    // This can just be sent directly as JSON

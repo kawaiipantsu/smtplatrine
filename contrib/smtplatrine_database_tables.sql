@@ -121,18 +121,19 @@ CREATE TABLE IF NOT EXISTS `honeypot_emails` (
   `emails_attachments` longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_bin NOT NULL COMMENT 'Must be JSON',
   `emails_body_text` longtext NOT NULL DEFAULT '',
   `emails_body_html` longtext NOT NULL DEFAULT '',
+  `emails_rawemails_id` int(11) NOT NULL,
   PRIMARY KEY (`id`),
   KEY `fk_emails_client_ip` (`emails_client_ip`) USING BTREE
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci COMMENT='This table will consist of all mails recieved via the SMTP honeypot';
+) ENGINE=InnoDB AUTO_INCREMENT=3 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci COMMENT='This table will consist of all mails recieved via the SMTP honeypot';
 
-DROP TABLE IF EXISTS `honeypot_rawmail`;
-CREATE TABLE IF NOT EXISTS `honeypot_rawmail` (
+DROP TABLE IF EXISTS `honeypot_rawemails`;
+CREATE TABLE IF NOT EXISTS `honeypot_rawemails` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
-  `rawmail_data` longtext NOT NULL,
-  `rawmail_received` timestamp NULL DEFAULT current_timestamp(),
-  `rawmail_keep` enum('Keep','Unseen','Seen','Delete') NOT NULL DEFAULT 'Unseen',
+  `rawemails_data` longtext NOT NULL,
+  `rawemails_received` timestamp NULL DEFAULT current_timestamp(),
+  `rawemails_keep` enum('Keep','Unseen','Seen','Delete') NOT NULL DEFAULT 'Unseen',
   PRIMARY KEY (`id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci COMMENT='This table will hold a backup of the complete raw email recieved by the client, please note this can take up space and should be cleaned up regularly see contrib';
+) ENGINE=InnoDB AUTO_INCREMENT=2 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci COMMENT='This table will hold a backup of the complete raw email recieved by the client, please note this can take up space and should be cleaned up regularly see contrib';
 
 DROP TABLE IF EXISTS `honeypot_recipients`;
 CREATE TABLE IF NOT EXISTS `honeypot_recipients` (
@@ -147,7 +148,7 @@ CREATE TABLE IF NOT EXISTS `honeypot_recipients` (
   PRIMARY KEY (`id`),
   UNIQUE KEY `recipients_address` (`recipients_address`),
   KEY `recipients_domain` (`recipients_domain`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci COMMENT='This table holds all seen recipients from the SMTP sessions, we don''t have duplicates however we update a seen count';
+) ENGINE=InnoDB AUTO_INCREMENT=9 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci COMMENT='This table holds all seen recipients from the SMTP sessions, we don''t have duplicates however we update a seen count';
 
 DROP TABLE IF EXISTS `meta_abuseipdb`;
 CREATE TABLE IF NOT EXISTS `meta_abuseipdb` (
