@@ -282,7 +282,7 @@ class Database {
         // Establish a connection to the database
         $this->dbMysqlConnect();
 
-        $clientIP = trim("80.197.127.162");
+        $clientIP = trim($clientIP);  // Not really needed, but easy way to inject/overwride for testing
 
         // Geo information
         if ( $this->meta->isGeoIPavailable() ) {
