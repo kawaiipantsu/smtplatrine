@@ -14,9 +14,8 @@
 --                                 ||          |       /
 --  (c) 2024 - THUGSred            ||     ___,-\__..__|__
 -- ---------------------------------------------------------------
--- SQL Dump for the database smtplatrine
--- PLEASE NOTE THIS IS DESTRUCTIVE !!!! USING DROP TABLES !!
--- ONLY USE THIS FILE IF YOU WANT TO RECREATE THE DATABASE
+-- NON DESTRUCTIVE SQL DUMP - You need to supply a database name
+-- It will however drop the tables if they exist
 -- ---------------------------------------------------------------
 
 /*!40101 SET @OLD_CHARACTER_SET_CLIENT=@@CHARACTER_SET_CLIENT */;
@@ -27,9 +26,6 @@
 /*!40014 SET @OLD_FOREIGN_KEY_CHECKS=@@FOREIGN_KEY_CHECKS, FOREIGN_KEY_CHECKS=0 */;
 /*!40101 SET @OLD_SQL_MODE=@@SQL_MODE, SQL_MODE='NO_AUTO_VALUE_ON_ZERO' */;
 /*!40111 SET @OLD_SQL_NOTES=@@SQL_NOTES, SQL_NOTES=0 */;
-
-CREATE DATABASE IF NOT EXISTS `smtplatrine` /*!40100 DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci */;
-USE `smtplatrine`;
 
 DROP TABLE IF EXISTS `acl_blacklist_geo`;
 CREATE TABLE IF NOT EXISTS `acl_blacklist_geo` (
