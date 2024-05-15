@@ -350,8 +350,6 @@ class Database {
 
         }
 
-        var_dump($euunion);
-
         if ( $this->dbConnected && $clientIP ) {
             // Prepare the insert query on duplicate key update
             $query = "INSERT INTO honeypot_clients (clients_ip,clients_hostname,clients_as_number,clients_as_name,clients_geo_country_code,clients_geo_country_name,clients_geo_continent,clients_geo_eu_union,clients_geo_city_name,clients_geo_city_postalcode,clients_geo_subdivisionname,clients_geo_latitude,clients_geo_longitude,client_location_accuracy_radius,clients_timezone) VALUES (";
