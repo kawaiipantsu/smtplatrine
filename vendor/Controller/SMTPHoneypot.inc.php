@@ -123,7 +123,7 @@ class SMTPHoneypot {
         // Now add the custom header to the emailEML array before key position and rebuild the complete array
         $emailEMLArray = array_merge(
             array_slice($emailEMLArray, 0, $headerLine),
-            array(trim($header).": ".trim($value)."\r\n"),
+            array(trim($header).": ".trim($value)."\n"),
             array_slice($emailEMLArray, $headerLine)
         );
 
