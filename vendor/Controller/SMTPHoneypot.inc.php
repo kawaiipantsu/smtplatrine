@@ -121,17 +121,21 @@ class SMTPHoneypot {
         }
 
         // Now add the custom header to the emailEML array before key position and rebuild the complete array
-        $emailEMLArray = array_merge(
-            array_slice($emailEMLArray, 0, $headerLine),
-            array(trim($header).": ".trim($value)."\r\n"),
-            array_slice($emailEMLArray, $headerLine)
-        );
+        $top = array_slice($emailEMLArray, 0, $headerLine);
+        $bottom = array_slice($emailEMLArray, $headerLine);
+        unset($emailEMLArray);
 
         // Now build emailEML from array as loop
         $this->emailEML = '';
-        foreach($emailEMLArray as $line) {
+        foreach($top as $line) {
             $this->emailEML .= $line;
         }
+        $this->emailEML .= trim($header).": ".trim($value)."\r\n";
+        foreach($bottom as $line) {
+            $this->emailEML .= $line;
+        }
+        unset($top);
+        unset($bottom);
 
         // Old way, just add a line to the end of the emailEML
         //$this->emailEML .= trim($header).": ".trim($value)."\r\n";
