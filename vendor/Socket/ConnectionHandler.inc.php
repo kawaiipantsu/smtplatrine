@@ -190,6 +190,21 @@ class connectionHandler {
                             // HONEYPOT SESSION IS ACTUALLY OVER AT THIS POINT!
                             // But we are still technically waiting for the client to send a QUIT command
 
+                            // But ohh wait ! If we see a QUIT command packed into the same line we should act on it
+                            // We need to check if that is true via the checkPackedCommand call
+                            if ( $this->smtp->checkPackedCommand("QUIT") ) {
+
+                                // Log what is going to happen
+                                $this->logger->logMessage("[".$client->getPeerAddress()."] Client sent QUIT command, closing connection");
+
+                                // Handle end of connection
+                                $this->handleEnd($client);
+
+                                // End the connectionHandler handle() function
+                                $this->logger->logMessage("[".$client->getPeerAddress()."] Closed connection (QUIT)");
+                                return false;
+                            }
+
                         }
 
                     }

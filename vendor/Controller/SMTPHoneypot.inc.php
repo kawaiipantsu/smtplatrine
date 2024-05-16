@@ -24,6 +24,7 @@ class SMTPHoneypot {
     );
     private $smtpCommands = array();
     private $smtpCommandsSequence = array();
+    private $smtpFoundPackedCommand = false;
     public $smtpLastCommand = false;
     protected $smtpDATAmode = false;
     private $dataLastLine = false;
@@ -186,6 +187,10 @@ class SMTPHoneypot {
 
         // Make local copy of email data, to work on without destroying the original
         $emailEML = $this->emailData;
+        
+        // >>
+        // >> IF we need to manipulate the data, we can do it here
+        // >>
 
         // Create the actual EML body from DATA including any sent headers
         $this->emailEML .= $emailEML."\r\n";
@@ -350,6 +355,7 @@ class SMTPHoneypot {
                     $data = str_replace($possibleCommand,'',$data);
                     // Log it for debugging
                     $this->logger->logDebugMessage("[smtp] Possible Command found: ".$possibleCommand);
+                    $this->smtpFoundPackedCommand = $possibleCommand;
                 }
             }
 
@@ -382,6 +388,16 @@ class SMTPHoneypot {
         }
 
         return false; // We do this to continue the loop and continue to accept DATA
+    }
+
+    // Function to check if packed command was found
+    public function checkPackedCommand($command = false) {
+        // In the future we might want to check for specific commands
+        if ( $command && $command != "" ) {
+            return $this->smtpFoundPackedCommand == $command ? true : false;
+        } else {
+            return $this->smtpFoundPackedCommand ? true : false;
+        }
     }
 
     // Get email DATA (EML format)
