@@ -286,9 +286,9 @@ class SMTPHoneypot {
         // Build DATA end sequence
         $dataQuitSequence = $this->dataLastLine.$data;
 
-        // Output debug log for data in ascii and hex
-        $this->logger->logDebugMessage("[smtp] Received DATA: ".$data);
-        $this->logger->logDebugMessage("[smtp] Received DATA (HEX): ".bin2hex($data));
+        // Output debug log for data in ascii and hex (This is only a temporary debug log, remove when done testing)
+        //$this->logger->logDebugMessage("[smtp] Received DATA: ".$data);
+        //$this->logger->logDebugMessage("[smtp] Received DATA (HEX): ".bin2hex($data));
 
         // Log SMTP DATA (DEBUG) if not empty
         $dataLog = $data;
@@ -302,10 +302,25 @@ class SMTPHoneypot {
             $this->dataLastLine = substr($data, -2);
         } else $this->dataLastLine = $data;
 
-        // Grab the last 5 bytes of the data and convert to HEX for comparison
-        $hexEndSequence = bin2hex(substr($data,-5));
-        // Check if we see the end of data sequence
-        if ( $hexEndSequence == $this->smtpDATAendHEX ) {
+        // Grab the last 25 bytes of the data and convert to HEX for comparison
+        // We take this extra part as they might choose to wrap a command at the end of the data
+        $hexEndSequence = bin2hex(substr($data,-25));
+        // Check if we see the smtpDATAendHEX is present in the hexEndSequence
+        if ( strpos($hexEndSequence,$this->smtpDATAendHEX) !== false ) {
+
+            // Check if we end in ASCII characters in hexEndSequence
+            $regex = '/^[ -~]+$/';
+            $possibleCommand = false;
+            if (preg_match($regex, $hexEndSequence, $_match)) {
+                if ( $_match[0] && $_match[0] != "" ) {
+                    $possibleCommand = @trim($_match[0]);
+                    // Make sure to strip it away from original data
+                    $data = str_replace($possibleCommand,'',$data);
+                    // Log it for debugging
+                    $this->logger->logDebugMessage("[smtp] Possible Command found: ".$possibleCommand);
+                }
+            }
+
             // Add the last line to the email data
             $this->addEmailData(rtrim(trim($data),'.'));
 
