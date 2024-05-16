@@ -248,6 +248,18 @@ class Database {
     // -- INSERT RECIPIENT EMAIL ADDRESS into database
     private function insertRecipient( $email = false ) {
 
+        // Raw line for prosperity and history
+        $rawEmail = $email;
+
+        // RCPT TO can contain extra SMTP commands after the email separated by space.
+        // We only want the email address, so we split it by space and take the first part
+        // But we can only explode on space if we have a space in the string check via if
+        if ( strpos($email,' ') !== false ) {
+            $email = explode(' ',$email);
+            $email = $email[0];
+            $email = trim($email);
+        }
+  
         // Try to split up email in username, tags and domain
         $emailParts = explode('@',$email);
         $emailUsername = $emailParts[0];
@@ -262,12 +274,13 @@ class Database {
 
         if ( $this->dbConnected && $email ) {
             // Prepare the insert query on duplicate key update
-            $query = "INSERT INTO honeypot_recipients (recipients_seen,recipients_address,recipients_username,recipients_tags,recipients_domain) VALUES (";
+            $query = "INSERT INTO honeypot_recipients (recipients_seen,recipients_address,recipients_username,recipients_tags,recipients_domain,recipients_raw) VALUES (";
             $query .= "1,";
             $query .= "'".mysqli_real_escape_string($this->db,$email)."',";
             $query .= "'".mysqli_real_escape_string($this->db,$emailUsername)."',";
             $query .= "'".mysqli_real_escape_string($this->db,$emailTags)."',";
             $query .= "'".mysqli_real_escape_string($this->db,$emailDomain)."'";
+            $query .= ",'".mysqli_real_escape_string($this->db,$rawEmail)."'";
             $query .= ")";
             $query .= " ON DUPLICATE KEY UPDATE recipients_seen = recipients_seen + 1";
 
