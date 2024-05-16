@@ -12,6 +12,8 @@ class SocketClient {
     private $logger;
     private $config = false;
 
+    private $defaultBufferSize = 1024;
+
     // Constructor
     public function __construct( $connection ) {
 
@@ -59,7 +61,15 @@ class SocketClient {
     }
 
     // Socket Client Read data
-    public function read($len = 1024) {
+    public function read( $overrideBufferSize = false ) {
+
+        // Set buffer size
+        if ( $overrideBufferSize === false ) {
+            $len = $this->defaultBufferSize;
+        } else {
+            $len = intval($overrideBufferSize);
+        }
+
         if ( ( $buf = @socket_read( $this->connection, $len, PHP_BINARY_READ  ) ) === false ) {
             return null;
         }

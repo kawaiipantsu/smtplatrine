@@ -1,4 +1,5 @@
 <?PHP
+
 namespace Socket;
 
 class Server {
@@ -9,7 +10,12 @@ class Server {
 	protected $listenLoop;
 	protected $connectionHandler;
 	private $logger;
+	private $meta;
+	private $db;
 	private $config = false;
+
+	private $acl_blacklist_ip = array();
+	private $acl_blacklist_geo = array();
 
 	public $childProcesses = array();	// Array of child processes
 	private $maxClients = 0;
@@ -20,12 +26,37 @@ class Server {
 		// Setup vendor logger
         $this->logger = new \Controller\Logger(basename(__FILE__,'.inc.php'),__NAMESPACE__);
 
+		// Enable Meta services if we got em
+		$this->meta = new \Controller\Meta;
+
+		// Load up Database functionality
+        $this->db = new \Controller\Database;
+
 		$this->listenLoop = false;
 		if ( $this->config === false ) {
             $this->config = $this->loadConfig();
         }
 		$this->address = strtolower(trim($this->config['server']['server_listen']));
 		$this->port = strtolower(trim($this->config['server']['server_port']));
+
+		// Check if protection acl is enabled and then refresh acl lists
+		if ( array_key_exists('protection',$this->config) ) {
+
+			if (array_key_exists('protection_acl_blacklist_ip',$this->config['protection']) || array_key_exists('protection_acl_blacklist_geo',$this->config['protection']) ) {
+				$this->logger->logMessage('[server] Protection ACL enabled, refreshing appropriate local cached blacklists','NOTICE');
+			}
+
+			if ( array_key_exists('protection_acl_blacklist_ip',$this->config['protection']) ) {
+				if ( trim($this->config['protection']['protection_acl_blacklist_ip']) == "1" ) {
+					$this->refreshACL('ip');
+				}
+			}
+			if ( array_key_exists('protection_acl_blacklist_geo',$this->config['protection']) ) {
+				if ( trim($this->config['protection']['protection_acl_blacklist_geo']) == "1" ) {
+					$this->refreshACL('geo');
+				}
+			}
+		}
 
 		// Get max connections allowed from protection
 		$this->maxClients = array_key_Exists("protection_max_connections",$this->config['protection']) ? intval($this->config['protection']['protection_max_connections']) : 10;
@@ -41,6 +72,11 @@ class Server {
     private function loadConfig() {
         $config = parse_ini_file(__DIR__ . '/../../etc/server.ini',true);
         return $config;
+    }
+
+	// Reload config file from etc
+    public function reloadConfig() {
+        $this->config = $this->loadConfig();
     }
 
 	// Start the server
@@ -66,7 +102,7 @@ class Server {
 
 	// Before server loop
 	protected function beforeServerLoop() {
-		$this->logger->logMessage('[server] Listning on ' . $this->address . ':' . $this->port . ' ...');
+		$this->logger->logMessage('[server] Listening on ' . $this->address . ':' . $this->port . ' ...');
 	}
 
 	// Set connection handler
@@ -127,6 +163,41 @@ class Server {
         }
 
         $socketClient = new SocketClient( $handle );
+
+		// Check if IP is blacklisted
+		$checkIP = trim($this->config['protection']['protection_acl_blacklist_ip']) == "1" ? true : false;
+		if ( $checkIP ) {
+			$blocked = $this->aclCheckIfBlacklisted('ip',$socketClient->getPeerAddress());
+			// If not allowed, close connection
+			if ( $blocked ) {
+				$this->logger->logMessage("[".$socketClient->getPeerAddress()."] Closed connection (Rejected: Blacklisted IP)");
+				$socketClient->close();
+				return false;
+			}
+		}
+
+		// Check if Geo is blacklisted
+		$checkGeo = trim($this->config['protection']['protection_acl_blacklist_geo']) == "1" ? true : false;
+		if ( $checkGeo ) {
+			if ( $this->meta->isGeoIPavailable() ) {
+				// Get Geo code
+				$geoCode = $this->meta->getGeoIPMain($socketClient->getPeerAddress());
+				$countryCode = false;
+				if ( is_array($geoCode) ) {
+					$countryCode = array_key_exists('country',$geoCode) ? $geoCode['country']['iso_code'] : false;
+				}
+				if ( $countryCode && $this->aclCheckIfBlacklisted('geo',$countryCode) ) {
+					$this->logger->logMessage("[".$socketClient->getPeerAddress()."] Closed connection (Rejected: Blacklisted GEO)");
+					$socketClient->close();
+					return false;
+				}
+			} else {
+				// log about it
+				$this->logger->logErrorMessage('[server] GeoIP not available, can\'t check GEO blacklist');
+			}
+			
+		}
+
 		if ( is_array( $this->connectionHandler ) ) {
 			$object = $this->connectionHandler[0];
 			$method = $this->connectionHandler[1];
@@ -145,6 +216,144 @@ class Server {
 			$this->logger->logMessage('[server] Spawned client on pid '.$spawnClient->getPID());
 		}
     }
+
+	// Initiate refresh of ACL public
+	public function reloadACL( $blacklist = false ) {
+		switch ( strtolower(trim($blacklist)) ) {
+			case "ip":
+				if ( array_key_exists('protection_acl_blacklist_ip',$this->config['protection']) ) {
+					if ( trim($this->config['protection']['protection_acl_blacklist_ip']) == "1" ) {
+						$this->refreshACL($blacklist);
+					}
+				}
+				break;
+			case "geo":
+				if ( array_key_exists('protection_acl_blacklist_geo',$this->config['protection']) ) {
+					if ( trim($this->config['protection']['protection_acl_blacklist_geo']) == "1" ) {
+						$this->refreshACL($blacklist);
+					}
+				}
+				break;
+			case "all":
+				if ( array_key_exists('protection_acl_blacklist_ip',$this->config['protection']) ) {
+					if ( trim($this->config['protection']['protection_acl_blacklist_ip']) == "1" ) {
+						$this->refreshACL($blacklist);
+					}
+				}
+				if ( array_key_exists('protection_acl_blacklist_geo',$this->config['protection']) ) {
+					if ( trim($this->config['protection']['protection_acl_blacklist_geo']) == "1" ) {
+						$this->refreshACL($blacklist);
+					}
+				}
+				break;
+		}
+		
+	}
+
+	// Refresh ACL array from DB
+	private function refreshACL( $blacklist = false ) {
+		if ( $blacklist ) {
+			switch( $blacklist ) {
+				case "ip":
+					$this->acl_blacklist_ip = array();
+					$this->logger->logMessage('[server] Refreshing ACL IP blacklist from database', 'NOTICE');
+					$this->acl_blacklist_ip = $this->getBlacklist('ip');
+					break;
+				case "geo":
+					$this->acl_blacklist_geo = array();
+					$this->logger->logMessage('[server] Refreshing ACL Geo blacklist from database', 'NOTICE');
+					$this->acl_blacklist_geo = $this->getBlacklist('geo');
+					break;
+				case "all":
+					$this->acl_blacklist_geo = array();
+					$this->acl_blacklist_ip = array();
+					$this->logger->logMessage('[server] Refreshing ACL Geo blacklist from database', 'NOTICE');
+					$this->logger->logMessage('[server] Refreshing ACL IP blacklist from database', 'NOTICE');
+					$this->acl_blacklist_geo = $this->getBlacklist('geo');
+					$this->acl_blacklist_ip = $this->getBlacklist('ip');
+					break;
+				default:
+					$this->logger->logErrorMessage('[server] Blacklist not supported: ' . $blacklist);
+					break;
+			}
+		}
+
+	}
+
+	// Get blacklist from database
+	// For now we use the quick and dirty way to get the blacklist by running SQL queries directly against the database
+	// But in the long term we should use prepared statements and a more secure way to get the data
+	private function getBlacklist( $blacklist = "ip" ) {
+		$blacklistArray = array();
+		
+		switch( $blacklist ) {
+			case "ip":
+				$query = "SELECT ip_addr FROM acl_blacklist_ip";
+				$result = $this->db->dbMysqlRawQuery($query, true, false); // Query, No return sql resource, No logging
+				if ( mysqli_num_rows($result) > 0 ) {
+					while( $row = mysqli_fetch_assoc($result) ) {
+						$blacklistArray[] = $row['ip_addr'];
+					}
+				}
+				$this->logger->logMessage('[server] ACL Loaded ' . count($blacklistArray) . ' IP addresses to blacklist', 'NOTICE');
+				break;
+			case "geo":
+				$query = "SELECT geo_code FROM acl_blacklist_geo";
+				$result = $this->db->dbMysqlRawQuery($query, true, false); // Query, No return sql resource, No logging
+				if ( mysqli_num_rows($result) > 0 ) {
+					while( $row = mysqli_fetch_assoc($result) ) {
+						$blacklistArray[] = strtoupper(trim($row['geo_code']));
+					}
+				}
+				$this->logger->logMessage('[server] ACL Loaded ' . count($blacklistArray) . ' Geo codes to blacklist', 'NOTICE');
+				break;
+			default:
+				$this->logger->logErrorMessage('[server] Blacklist not supported: ' . $blacklist);
+				break;
+		}
+		return $blacklistArray;
+	}
+
+	// Protection: Check against acl blacklist
+	// Will return "FALSE" if not blacklisted
+	// Will return "TRUE" if blacklisted
+	private function aclCheckIfBlacklisted( $blacklist = "ip", $value = false ) {
+
+		// Default deny?
+		$defaultAction = true;
+
+		if ( $value === false ) {
+			return $defaultAction;
+		}
+
+		switch( strtolower(trim($blacklist)) ) {
+			case "ip":
+				if ( filter_var($value, FILTER_VALIDATE_IP) ) {
+					if ( in_array($value,$this->acl_blacklist_ip) ) {
+						$this->logger->logMessage('[server] Blacklisted IP tried to connect: '.$value.' (Protection: enabled)', 'NOTICE');
+						$query = "SELECT geo_code FROM acl_blacklist_geo";
+						$this->db->blacklistUpdateEntry('ip',$value);
+						return true;
+					}
+				}
+				break;
+			case "geo":
+				if ( strlen($value) == 2 ) {
+					$value = strtoupper($value);
+					if ( in_array($value,$this->acl_blacklist_geo) ) {
+						$this->logger->logMessage('[server] Blacklisted Country tried to connect: '.$value.' (Protection: enabled)', 'NOTICE');
+						$this->db->blacklistUpdateEntry('geo',$value);
+						return true;
+					}
+				}
+				break;
+			default:
+				$this->logger->logErrorMessage('[server] Blacklist not supported: ' . $blacklist);
+				return $defaultAction;
+				break;
+		}
+
+	}
 
 
 	// Create the socket
@@ -166,7 +375,7 @@ class Server {
 				SocketException::CANT_BIND, socket_strerror(socket_last_error( $this->server ) ) 
 			);
 		}
-		$this->logger->logDebugMessage('[server] Socket binded to ' . $this->address . ':' . $this->port);
+		$this->logger->logDebugMessage('[server] Socket bound to ' . $this->address . ':' . $this->port);
 	}
 
 }

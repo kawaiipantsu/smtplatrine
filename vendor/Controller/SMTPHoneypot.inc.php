@@ -11,12 +11,16 @@ class SMTPHoneypot {
         'EHLO',
         'AUTH',
         'MAIL FROM',
+        'MAIL',
+        'RCPT',
         'RCPT TO',
         'DATA',
         'RSET',
         'NOOP',
         'QUIT',
-        'HELP'
+        'VRFY',
+        'EXPN',
+        'GET'
     );
     private $smtpCommands = array();
     private $smtpCommandsSequence = array();
@@ -24,6 +28,7 @@ class SMTPHoneypot {
     protected $smtpDATAmode = false;
     private $dataLastLine = false;
     private $weSecure = false;
+    private $smtpDATAendHEX = '0d0a2e0d0a'; // HEX for \r\n.\r\n
 
     // Email components
     private $emailHELO = false;
@@ -102,13 +107,13 @@ class SMTPHoneypot {
 
     // Function to add custom X-header to email EML
     private function addCustomHeader($header,$value) {
-        $this->emailEML .= $header.": ".$value."\r\n";
+        $this->emailEML .= trim($header).": ".trim($value)."\r\n";
     }
 
-    // Create the Recieved email EML initial header
+    // Create the Received email EML initial header
     private function buildReceivedHeader( $oldData = "" ) {
 
-        // oldData will be the orginal mail DATA as delivered to the SMTP server (honeypot)
+        // oldData will be the original mail DATA as delivered to the SMTP server (honeypot)
         // We will use this to add the original Received headers to the new email EML below our own
 
         // Set default values for our Received header
@@ -147,7 +152,7 @@ class SMTPHoneypot {
             $this->emailEML .= "Delivered-To: ".$rcpt."\r\n";
         }
 
-        // SMTP Recieved headers
+        // SMTP Received headers
         // TODO: Check if there already is a Received header or multiple, in either case
         //       we should add ours as the last one in the chain (top of the eml)
         $this->emailEML .= $this->buildReceivedHeader($this->emailData);
@@ -156,11 +161,13 @@ class SMTPHoneypot {
         $this->addCustomHeader("X-Latrine-Queue-ID",$this->emailQueueID);
         $this->addCustomHeader("X-Latrine-Client-IP","%%CLIENTIP%%");
         $this->addCustomHeader("X-Latrine-Client-Port","%%CLIENTPORT%%");
+        $this->addCustomHeader("X-Latrine-Server-Hostname",gethostname());
         $this->addCustomHeader("X-Latrine-Server-Listen",$srvAddress);
         $this->addCustomHeader("X-Latrine-Server-Port",$srvPort);
+        $this->addCustomHeader("X-Latrine-Server-System",php_uname());
 
         // Make local copy of email data, to work on without destroying the original
-        $emailData = $this->emailData;
+        $emailEML = $this->emailData;
 
         // TODO: Check if there already is a Return-Path header, if so note it down and remove it from the data
         // TODO: Check if there already is a Delivered-To header, if so note it down and remove it from the data
@@ -169,7 +176,7 @@ class SMTPHoneypot {
         // Add Message-ID
 
         // Create the actual EML body from DATA
-        $this->emailEML .= $emailData."\r\n";
+        $this->emailEML .= $emailEML."\r\n";
     }
 
     // SMTP compliant check order of command sequence
@@ -177,6 +184,12 @@ class SMTPHoneypot {
         $validateCommands = $this->smtpCommandsSequence;
         $realCommands = $this->smtpCommands;
         
+        // Quickly just check if this is even a SMTP accepted command
+        // If not, just return true and let the command parser handle it.
+        if ( $this->validateCommand(end($realCommands)) === false ) {
+            return true;
+        }
+
         // Check for the commands that can always come out of order
         if ( count($realCommands) > 0 ) {
             if ( end($realCommands) == 'QUIT' || end($realCommands) == 'RSET' || end($realCommands) == 'NOOP' || end($realCommands) == 'HELP' ) {
@@ -196,7 +209,7 @@ class SMTPHoneypot {
 
             // Second check that we always get MAIL FROM
             if ( count($validateCommands) == 2 ) {
-                // Next up is MAIL FROM or AUTH (if recieved!)
+                // Next up is MAIL FROM or AUTH (if received!)
                 if ( $validateCommands[1] == 'MAIL FROM' || $validateCommands[1] == 'AUTH' ) {
                     return true;
                 }
@@ -276,7 +289,7 @@ class SMTPHoneypot {
         // Log SMTP DATA (DEBUG) if not empty
         $dataLog = $data;
         if ( $dataLog && $dataLog != "" ) {
-            $this->logger->logDebugMessage("[smtp] Recieved DATA (".strlen($dataLog)." bytes)");
+            $this->logger->logDebugMessage("[smtp] Received DATA (".strlen($dataLog)." bytes)");
             //$this->logger->logDebugMessage("[smtp] : ".$dataLog);
         }
         // Update last line
@@ -285,8 +298,25 @@ class SMTPHoneypot {
             $this->dataLastLine = substr($data, -2);
         } else $this->dataLastLine = $data;
 
-        // Check if end of data
-        if ( preg_match('/^(\r?\n){1}\.(\r?\n){1}$/',$dataQuitSequence) || preg_match('/^(\r?\n){1}\.(\r?\n){1}$/',$data) ) {
+        // Grab the last 5 bytes of the data and convert to HEX for comparison
+        $hexEndSequence = bin2hex(substr($data,-5));
+        // Check if we see the end of data sequence
+        if ( $hexEndSequence == $this->smtpDATAendHEX ) {
+            // Add the last line to the email data
+            $this->addEmailData(rtrim(trim($data),'.'));
+
+            $this->setSMTPDATAmode(false);
+            $this->logger->logDebugMessage("[smtp] End of DATA (total bytes = ".strlen($this->emailData).")");
+            $queue_number = $this->generateQueueID();
+            // Set queue number
+            $this->emailQueueID = $queue_number;
+            // Build email EML
+            $this->buildEmailEML();
+            return $this->reply(" Ok: queued as ".$queue_number,250);
+        } else if ( preg_match('/^(\r?\n){1}\.(\r?\n){1}$/',$dataQuitSequence) || preg_match('/^(\r?\n){1}\.(\r?\n){1}$/',$data) ) {
+            // Add the last line to the email data
+            $this->addEmailData(rtrim(trim($data),'.'));
+
             $this->setSMTPDATAmode(false);
             $this->logger->logDebugMessage("[smtp] End of DATA (total bytes = ".strlen($this->emailData).")");
             $queue_number = $this->generateQueueID();
@@ -299,6 +329,7 @@ class SMTPHoneypot {
             // Build email data
             $this->addEmailData($data);
         }
+
         return false; // We do this to continue the loop and continue to accept DATA
     }
 
@@ -355,10 +386,10 @@ class SMTPHoneypot {
         }
 
         // Log SMTP command and argument (DEBUG)
-        if ( $command && $command != "UNKNOWN" ) $this->logger->logDebugMessage("[smtp] Recieved command: ".trim($command));
-        if ($argument) $this->logger->logDebugMessage("[smtp] Recieved argument: ".trim($argument));
+        if ( $command && $command != "UNKNOWN" ) $this->logger->logDebugMessage("[smtp] Received command: ".trim($command));
+        if ($argument) $this->logger->logDebugMessage("[smtp] Received argument: ".trim($argument));
 
-        // Create action to return based on SMTP command via switch cases and use reply for anwsers
+        // Create action to return based on SMTP command via switch cases and use reply for answers
         switch ( $command ) {
             case 'HELO':
                 $this->addCommandSequence($command); // Important command, Add to sequence array
@@ -428,12 +459,16 @@ class SMTPHoneypot {
             // Command sequence check
             $status = $this->checkCommandSequence();
             if ( !$status ) {
-                // Remove command from sequence arary
+                // Remove command from sequence array
                 $this->delCommandSequence($command);
                 // Make sure we are not in DATA mode
                 $this->setSMTPDATAmode(false);
                 // Set output as either FIRST or BAD sequence
-                if ( count($this->smtpCommandsSequence) < 1 ) $output = $this->reply(" Error: send HELO/EHLO first",503);
+                // We want to emulate Bad faith on some commands if they are first
+                if ( count($this->smtpCommandsSequence) < 1  && $command == "GET" ) $output = $this->reply(" Error: I can break rules, too. Goodbye.",503);
+                else if ( count($this->smtpCommandsSequence) < 1  && $command == "MAIL" ) $output = $this->reply(" Error: I can break rules, too. Goodbye.",503);
+                else if ( count($this->smtpCommandsSequence) < 1  && $command == "RCPT" ) $output = $this->reply(" Error: I can break rules, too. Goodbye.",503);
+                else if ( count($this->smtpCommandsSequence) < 1 ) $output = $this->reply(" Error: Send HELO/EHLO first.",503);
                 else $output = $this->reply(false,503);
             }
         }
@@ -442,17 +477,20 @@ class SMTPHoneypot {
         $commandSeen = count($this->smtpCommands);
         if ($command) $this->logger->logDebugMessage("[smtp] ".$commandSeen." command(s) parsed");
 
+        // Log debug on what we are returning
+        $this->logger->logDebugMessage("[smtp] Sending reply: ".trim($command));
+
         return $output;
     }
 
-    // fucntion to handle closing connection to early
+    // function to handle closing connection to early
     public function closeConnection() {
         return $this->reply(false,421);
     }
 
-    // fucntion to handle closing connection to early
+    // function to handle closing connection to early
     public function closeConnectionToManyConnections() {
-        return $this->reply(" Sorry i'm to busy to handle more connections",421);
+        return $this->reply(" Sorry i'm to busy to handle more connections. Goodbye.",421);
     }
 
     // Handle SMTP Honeypot
@@ -470,7 +508,7 @@ class SMTPHoneypot {
             450 => '450 Requested mail action not taken: mailbox unavailable',
             451 => '451 Requested action aborted: local error in processing',
             452 => '452 Requested action not taken: insufficient system storage',
-            500 => '500 Syntax error, command unrecognised',
+            500 => '500 Syntax error, command unrecognized',
             501 => '501 Syntax error in parameters or arguments',
             502 => '502 Command not implemented',
             503 => '503 Bad sequence of commands',
