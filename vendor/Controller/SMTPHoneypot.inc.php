@@ -311,12 +311,15 @@ class SMTPHoneypot {
         if ( strpos($hexEndSequence,$this->smtpDATAendHEX) !== false ) {
 
             // Log the last 25 bytes of the data (DEBUG)
-            $this->logger->logDebugMessage("[smtp] Last 25 bytes of DATA: ".$rawEndSequence);
-
+            //$this->logger->logDebugMessage("[smtp] Last 25 bytes of DATA: ".$rawEndSequence);
+            $possibleCommand = false;
 
             // Regular expression to check if we see <CR><LF>.<CR><LF> followed by ASCII chars and <CR><LF> at the end
-            $regex = '/^.*\r?\n\.\r?\n([ -~]+)\r?\n$/i';
-            $possibleCommand = false;
+            //$regex = '/^.*\r?\n\.\r?\n([ -~]+)\r?\n$/i'; // Not working correctly as it's multiline
+
+            // For now just check if we see the word QUIT<CR><LF> at the end of the data
+            $regex = '/QUIT\r?\n$/i';
+
             if (preg_match($regex, $rawEndSequence, $_match)) {
                 if ( $_match[0] && $_match[0] != "" ) {
                     $possibleCommand = @trim($_match[0]);
