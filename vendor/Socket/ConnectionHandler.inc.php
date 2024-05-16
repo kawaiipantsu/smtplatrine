@@ -381,7 +381,7 @@ class connectionHandler {
             $result = $parser->getParsedResult();
 
             // Debugging log print result array as base64 encoded from print_r
-            $this->logger->logDebugMessage('['.$client->getPeerAddress().'] Parsed email data: '.base64_encode(print_r($result,true)));
+            // $this->logger->logDebugMessage('['.$client->getPeerAddress().'] Parsed email data: '.base64_encode(print_r($result,true)));
 
             // We are all set !!
             // Now we can store the data in the database
