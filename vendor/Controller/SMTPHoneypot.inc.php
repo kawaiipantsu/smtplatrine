@@ -386,16 +386,20 @@ class SMTPHoneypot {
         }
 
         // Log SMTP command and argument (DEBUG)
-        if ( $command && $command != "UNKNOWN" ) $this->logger->logDebugMessage("[smtp] Received command: ".trim($command));
+        if ( $command && $command != "UNKNOWN" ) {
+            $this->logger->logDebugMessage("[smtp] Received command: ".trim($command));
+            // Output same log line but in HEX
+            $this->logger->logDebugMessage("[smtp] Received command (HEX): ".bin2hex(trim($command)));
+        }
         if ($argument) $this->logger->logDebugMessage("[smtp] Received argument: ".trim($argument));
+        // Output same log line but in HEX
+        if ($argument) $this->logger->logDebugMessage("[smtp] Received argument (HEX): ".bin2hex(trim($argument)));
 
         // Create action to return based on SMTP command via switch cases and use reply for answers
         switch ( $command ) {
             case 'HELO':
                 $this->addCommandSequence($command); // Important command, Add to sequence array
-                $output[] = $this->reply('-'.$domain,250);
-                $extra = $this->generateSMTPfeatures();
-                $output = array_merge($output,$extra);
+                $output = $this->reply(' '.$domain,250);
                 $this->emailHELO = $argument;
                 break;
             case 'EHLO':
@@ -478,7 +482,13 @@ class SMTPHoneypot {
         if ($command) $this->logger->logDebugMessage("[smtp] ".$commandSeen." command(s) parsed");
 
         // Log debug on what we are returning
-        $this->logger->logDebugMessage("[smtp] Sending reply: ".trim($command));
+        if ( is_array($output) ) {
+            foreach($output as $line) {
+                $this->logger->logDebugMessage("[smtp] Sending reply: ".trim($line));
+            }
+        } else {
+            $this->logger->logDebugMessage("[smtp] Sending reply: ".trim($output));
+        }
 
         return $output;
     }
@@ -501,18 +511,19 @@ class SMTPHoneypot {
         // List SMTP codes reply
         $replies = array(
             220 => '220 '.trim($fullBanner),
-            221 => '221 Goodbye',
-            250 => '250 OK',
+            221 => '221 2.0.0 Bye',
+            250 => '250 2.0.0 Ok',
             354 => '354 Start mail input; end with <CRLF>.<CRLF>',
             421 => '421 Service not available, closing transmission channel',
             450 => '450 Requested mail action not taken: mailbox unavailable',
             451 => '451 Requested action aborted: local error in processing',
             452 => '452 Requested action not taken: insufficient system storage',
             500 => '500 Syntax error, command unrecognized',
-            501 => '501 Syntax error in parameters or arguments',
-            502 => '502 Command not implemented',
-            503 => '503 Bad sequence of commands',
-            504 => '504 Command parameter not implemented',
+            501 => '501 5.5.4 Syntax: Error in parameters or arguments',
+            502 => '502 5.5.2 Error: command not recognized',
+            503 => '503 5.5.1 Error: Bad sequence of commands',
+            504 => '504 5.5.1 Command parameter not implemented',
+            521 => '521 5.5.1 Protocol error',
             550 => '550 Requested action not taken: mailbox unavailable',
             551 => '551 User not local; please try <forward-path>',
             552 => '552 Requested mail action aborted: exceeded storage allocation',
