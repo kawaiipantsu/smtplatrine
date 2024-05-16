@@ -262,7 +262,8 @@ class Database {
 
         if ( $this->dbConnected && $email ) {
             // Prepare the insert query on duplicate key update
-            $query = "INSERT INTO honeypot_recipients (recipients_address,recipients_username,recipients_tags,recipients_domain) VALUES (";
+            $query = "INSERT INTO honeypot_recipients (recipients_seen,recipients_address,recipients_username,recipients_tags,recipients_domain) VALUES (";
+            $query .= "1,";
             $query .= "'".mysqli_real_escape_string($this->db,$email)."',";
             $query .= "'".mysqli_real_escape_string($this->db,$emailUsername)."',";
             $query .= "'".mysqli_real_escape_string($this->db,$emailTags)."',";
@@ -369,8 +370,10 @@ class Database {
 
         if ( $this->dbConnected && $clientIP ) {
             // Prepare the insert query on duplicate key update
-            $query = "INSERT INTO honeypot_clients (clients_ip,clients_hostname,clients_as_number,clients_as_name,clients_geo_country_code,clients_geo_country_name,clients_geo_continent,clients_geo_eu_union,clients_geo_city_name,clients_geo_city_postalcode,clients_geo_subdivisionname,clients_geo_latitude,clients_geo_longitude,client_location_accuracy_radius,clients_timezone) VALUES (";
+            $query = "INSERT INTO honeypot_clients (clients_seen,clients_ip,clients_hostname,clients_as_number,clients_as_name,clients_geo_country_code,clients_geo_country_name,clients_geo_continent,clients_geo_eu_union,clients_geo_city_name,clients_geo_city_postalcode,clients_geo_subdivisionname,clients_geo_latitude,clients_geo_longitude,client_location_accuracy_radius,clients_timezone) VALUES (";
             
+            $query .= "1,";
+
             if ( isset($clientIP) ) $query .= "'".mysqli_real_escape_string($this->db,$clientIP)."',";
             else $query .= "NULL,";
 

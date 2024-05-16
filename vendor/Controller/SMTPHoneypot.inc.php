@@ -286,6 +286,10 @@ class SMTPHoneypot {
         // Build DATA end sequence
         $dataQuitSequence = $this->dataLastLine.$data;
 
+        // Output debug log for data in ascii and hex
+        $this->logger->logDebugMessage("[smtp] Received DATA: ".$data);
+        $this->logger->logDebugMessage("[smtp] Received DATA (HEX): ".bin2hex($data));
+
         // Log SMTP DATA (DEBUG) if not empty
         $dataLog = $data;
         if ( $dataLog && $dataLog != "" ) {
