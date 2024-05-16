@@ -107,7 +107,33 @@ class SMTPHoneypot {
 
     // Function to add custom X-header to email EML
     private function addCustomHeader($header,$value) {
-        $this->emailEML .= trim($header).": ".trim($value)."\r\n";
+
+        // Split emailEML into array
+        $emailEMLArray = explode("\n",$this->emailEML);
+        // This is a hack to find out the line number of some "known" header that we can pre-pend to
+        $headerLine = 0;
+        foreach($emailEMLArray as $key=>$line) {
+            if ( preg_match('/^from:/i',$line) || preg_match('/^subject:/i',$line) || preg_match('/^date:/i',$line) ) {
+                $headerLine = $key;
+                break;
+            }
+        }
+
+        // Now add the custom header to the emailEML array before key position and rebuild the complete array
+        $emailEMLArray = array_merge(
+            array_slice($emailEMLArray, 0, $headerLine),
+            array(trim($header).": ".trim($value)."\r\n"),
+            array_slice($emailEMLArray, $headerLine)
+        );
+
+        // Now build emailEML from array as loop
+        $this->emailEML = '';
+        foreach($emailEMLArray as $line) {
+            $this->emailEML .= $line;
+        }
+
+        // Old way, just add a line to the end of the emailEML
+        //$this->emailEML .= trim($header).": ".trim($value)."\r\n";
     }
 
     // Create the Received email EML initial header
@@ -128,7 +154,7 @@ class SMTPHoneypot {
         // Now add our own Received header (top of the eml)
         $resv = "Received: from %%CLIENTIP%% ( %%CLIENTIP%% [%%CLIENTIPREVERSE%%])\r\n";
         $resv .= "\tby ".$domain." (Postfix) with ".$smtpType." id ".$this->emailQueueID."\r\n";
-        $resv .= "\for <".$this->emailHELO.">; ".date('r')."\r\n";
+        $resv .= "\tor <".$this->emailHELO.">; ".date('r')."\r\n";
 
         // Return the new build Received header(s)
         return $resv;
@@ -145,19 +171,33 @@ class SMTPHoneypot {
 		$srvPort = strtolower(trim($this->config['server']['server_port']));
         $smtpType = $this->weSecure ? "ESMTP" : "SMTP";
 
+        // We add Return-Path and Delivered-To headers first
+        // This is typically for a SMTP server that is the "end destination" for the email
+
         // First add return path
         $this->emailEML .= "Return-Path: <bounce@".$domain.">\r\n";
         // Add Delivered to
+        // This header is "non-standard" but we piggy back on it to show all the recipients
         foreach($this->emailRCPT as $rcpt) {
             $this->emailEML .= "Delivered-To: ".$rcpt."\r\n";
         }
 
         // SMTP Received headers
-        // TODO: Check if there already is a Received header or multiple, in either case
-        //       we should add ours as the last one in the chain (top of the eml)
+        // We prepend ours to the top of the email EML, if it already comes with Received headers
+        // they will automatically be added below ours
         $this->emailEML .= $this->buildReceivedHeader($this->emailData);
 
-        // Custom X-Latrine related headers
+        // TODO: Check if there already is a Return-Path header, if so note it down and remove it from the data
+        // TODO: Check if there already is a Delivered-To header, if so note it down and remove it from the data
+
+        // TODO: Check if there already is a Message-ID header, if so we should not add it again
+        // Add Message-ID
+
+        // Create the actual EML body from DATA including any sent headers
+        $this->emailEML .= $emailEML."\r\n";
+
+        // Add Custom X-Latrine related headers - These are not standard headers
+        // Also addCustomHeader will add the header to the emailEML between the Received and the actual email data
         $this->addCustomHeader("X-Latrine-Queue-ID",$this->emailQueueID);
         $this->addCustomHeader("X-Latrine-Client-IP","%%CLIENTIP%%");
         $this->addCustomHeader("X-Latrine-Client-Port","%%CLIENTPORT%%");
@@ -166,17 +206,6 @@ class SMTPHoneypot {
         $this->addCustomHeader("X-Latrine-Server-Port",$srvPort);
         $this->addCustomHeader("X-Latrine-Server-System",php_uname());
 
-        // Make local copy of email data, to work on without destroying the original
-        $emailEML = $this->emailData;
-
-        // TODO: Check if there already is a Return-Path header, if so note it down and remove it from the data
-        // TODO: Check if there already is a Delivered-To header, if so note it down and remove it from the data
-
-        // TODO: Check if there already is a Message-ID header, if so we should not add it again
-        // Add Message-ID
-
-        // Create the actual EML body from DATA
-        $this->emailEML .= $emailEML."\r\n";
     }
 
     // SMTP compliant check order of command sequence
@@ -318,7 +347,7 @@ class SMTPHoneypot {
             //$regex = '/^.*\r?\n\.\r?\n([ -~]+)\r?\n$/i'; // Not working correctly as it's multiline
 
             // For now just check if we see the word QUIT<CR><LF> at the end of the data
-            $regex = '/QUIT\r?\n$/i';
+            $regex = '/(QUIT)\r?\n$/i';
 
             if (preg_match($regex, $rawEndSequence, $_match)) {
                 if ( $_match[0] && $_match[0] != "" ) {
