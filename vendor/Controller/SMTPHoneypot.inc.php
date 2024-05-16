@@ -128,11 +128,11 @@ class SMTPHoneypot {
         // Now build emailEML from array as loop
         $this->emailEML = '';
         foreach($top as $line) {
-            $this->emailEML .= $line;
+            $this->emailEML .= $line."\r\n";
         }
         $this->emailEML .= trim($header).": ".trim($value)."\r\n";
         foreach($bottom as $line) {
-            $this->emailEML .= $line;
+            $this->emailEML .= $line."\r\n";
         }
         unset($top);
         unset($bottom);
