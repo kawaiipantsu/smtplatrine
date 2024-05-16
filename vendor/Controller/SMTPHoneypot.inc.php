@@ -127,8 +127,8 @@ class SMTPHoneypot {
 
         // Now add our own Received header (top of the eml)
         $resv = "Received: from %%CLIENTIP%% ( %%CLIENTIP%% [%%CLIENTIPREVERSE%%])\r\n";
-        $resv .= " by ".$domain." (Postfix) with ".$smtpType." id ".$this->emailQueueID."\r\n";
-        $resv .= " for <".$this->emailHELO.">; ".date('r')."\r\n";
+        $resv .= "\tby ".$domain." (Postfix) with ".$smtpType." id ".$this->emailQueueID."\r\n";
+        $resv .= "\for <".$this->emailHELO.">; ".date('r')."\r\n";
 
         // Return the new build Received header(s)
         return $resv;
@@ -304,14 +304,16 @@ class SMTPHoneypot {
 
         // Grab the last 25 bytes of the data and convert to HEX for comparison
         // We take this extra part as they might choose to wrap a command at the end of the data
-        $hexEndSequence = bin2hex(substr($data,-25));
+        $rawEndSequence = substr($data,-25);
+        $hexEndSequence = bin2hex($rawEndSequence);
+        
         // Check if we see the smtpDATAendHEX is present in the hexEndSequence
         if ( strpos($hexEndSequence,$this->smtpDATAendHEX) !== false ) {
 
             // Check if we end in ASCII characters in hexEndSequence
             $regex = '/^[ -~]+$/';
             $possibleCommand = false;
-            if (preg_match($regex, $hexEndSequence, $_match)) {
+            if (preg_match($regex, $rawEndSequence, $_match)) {
                 if ( $_match[0] && $_match[0] != "" ) {
                     $possibleCommand = @trim($_match[0]);
                     // Make sure to strip it away from original data
