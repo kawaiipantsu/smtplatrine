@@ -110,7 +110,7 @@ class SMTPHoneypot {
     private function addCustomHeader($header,$value) {
 
         // Split emailEML into array
-        $emailEMLArray = explode("\n",$this->emailEML);
+        $emailEMLArray = explode("\r\n",$this->emailEML);
         // This is a hack to find out the line number of some "known" header that we can pre-pend to
         $headerLine = 0;
         foreach($emailEMLArray as $key=>$line) {
@@ -123,7 +123,7 @@ class SMTPHoneypot {
         // Now add the custom header to the emailEML array before key position and rebuild the complete array
         $emailEMLArray = array_merge(
             array_slice($emailEMLArray, 0, $headerLine),
-            array(trim($header).": ".trim($value)."\n"),
+            array(trim($header).": ".trim($value)."\r\n"),
             array_slice($emailEMLArray, $headerLine)
         );
 
@@ -197,6 +197,7 @@ class SMTPHoneypot {
 
         // Add Custom X-Latrine related headers - These are not standard headers
         // Also addCustomHeader will add the header to the emailEML between the Received and the actual email data
+        /*
         $this->addCustomHeader("X-Latrine-Queue-ID",$this->emailQueueID);
         $this->addCustomHeader("X-Latrine-Client-IP","%%CLIENTIP%%");
         $this->addCustomHeader("X-Latrine-Client-Port","%%CLIENTPORT%%");
@@ -204,7 +205,7 @@ class SMTPHoneypot {
         $this->addCustomHeader("X-Latrine-Server-Listen",$srvAddress);
         $this->addCustomHeader("X-Latrine-Server-Port",$srvPort);
         $this->addCustomHeader("X-Latrine-Server-System",php_uname());
-
+        */
     }
 
     // SMTP compliant check order of command sequence
