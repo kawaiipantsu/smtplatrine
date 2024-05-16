@@ -14,6 +14,8 @@ class Timing {
         // Nothing to do
     }
 
+    
+
     // Get the current time in seconds
     public static function getMicroTime() {
         list($usec, $sec) = explode(" ", microtime());

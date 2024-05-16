@@ -477,6 +477,9 @@ class SMTPHoneypot {
         $commandSeen = count($this->smtpCommands);
         if ($command) $this->logger->logDebugMessage("[smtp] ".$commandSeen." command(s) parsed");
 
+        // Log debug on what we are returning
+        $this->logger->logDebugMessage("[smtp] Sending reply: ".trim($command));
+
         return $output;
     }
 
