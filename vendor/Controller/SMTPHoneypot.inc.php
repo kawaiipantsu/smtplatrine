@@ -137,10 +137,7 @@ class SMTPHoneypot {
     }
 
     // Create the Received email EML initial header
-    private function buildReceivedHeader( $oldData = "" ) {
-
-        // oldData will be the original mail DATA as delivered to the SMTP server (honeypot)
-        // We will use this to add the original Received headers to the new email EML below our own
+    private function buildReceivedHeader() {
 
         // Set default values for our Received header
         $domain = array_key_exists("smtp_domain",$this->config['smtp']) ? trim($this->config['smtp']['smtp_domain']) : 'smtp.example.com';
@@ -152,7 +149,7 @@ class SMTPHoneypot {
         // TODO: preg_match_all on Received headers
 
         // Now add our own Received header (top of the eml)
-        $resv = "Received: from %%CLIENTIP%% ( %%CLIENTIP%% [%%CLIENTIPREVERSE%%])\r\n";
+        $resv = "Received: from %%CLIENTIPREVERSE%% (%%CLIENTIPREVERSE%% [%%CLIENTIP%%])\r\n";
         $resv .= "\tby ".$domain." (Postfix) with ".$smtpType." id ".$this->emailQueueID."\r\n";
         $resv .= "\tor <".$this->emailHELO.">; ".date('r')."\r\n";
 
@@ -185,13 +182,10 @@ class SMTPHoneypot {
         // SMTP Received headers
         // We prepend ours to the top of the email EML, if it already comes with Received headers
         // they will automatically be added below ours
-        $this->emailEML .= $this->buildReceivedHeader($this->emailData);
+        $this->emailEML .= $this->buildReceivedHeader();
 
-        // TODO: Check if there already is a Return-Path header, if so note it down and remove it from the data
-        // TODO: Check if there already is a Delivered-To header, if so note it down and remove it from the data
-
-        // TODO: Check if there already is a Message-ID header, if so we should not add it again
-        // Add Message-ID
+        // Make local copy of email data, to work on without destroying the original
+        $emailEML = $this->emailData;
 
         // Create the actual EML body from DATA including any sent headers
         $this->emailEML .= $emailEML."\r\n";
