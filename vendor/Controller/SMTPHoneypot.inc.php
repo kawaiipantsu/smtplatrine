@@ -314,8 +314,8 @@ class SMTPHoneypot {
             $this->logger->logDebugMessage("[smtp] Last 25 bytes of DATA: ".$rawEndSequence);
 
 
-            // Check if we end in ASCII characters in hexEndSequence
-            $regex = '/^.*([ -~]+)$/';
+            // Regular expression to check if we see <CR><LF>.<CR><LF> followed by ASCII chars and <CR><LF> at the end
+            $regex = '/^.*\r?\n\.\r?\n([ -~]+)\r?\n$/i';
             $possibleCommand = false;
             if (preg_match($regex, $rawEndSequence, $_match)) {
                 if ( $_match[0] && $_match[0] != "" ) {
