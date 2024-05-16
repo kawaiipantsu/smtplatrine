@@ -311,7 +311,7 @@ class SMTPHoneypot {
         if ( strpos($hexEndSequence,$this->smtpDATAendHEX) !== false ) {
 
             // Check if we end in ASCII characters in hexEndSequence
-            $regex = '/^[ -~]+$/';
+            $regex = '/^.*([ -~]+)$/';
             $possibleCommand = false;
             if (preg_match($regex, $rawEndSequence, $_match)) {
                 if ( $_match[0] && $_match[0] != "" ) {
