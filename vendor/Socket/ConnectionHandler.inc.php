@@ -195,60 +195,126 @@ class connectionHandler {
                     }
                 } else {
 
-                    // Since we are NOT in the DATA mode, we are in regular SMTP command mode
-                    // So let's parse what ever the client connected inputs and simulate SMTP commands responses
-                    // The command line interpreter will always return a reply to the client!
-                    $response = $this->smtp->parseCommand($read);
+                    // Detect if there are <CR><LF> in the line we just got, this would indicate that
+                    // they are ending multiple commands in on line and we need to split them up and loop though them
+                    if ( preg_match('/\r\n/',$read) ) {
 
-                    // Based on what the client sent, we can now send a reply back to the client
-                    if ( $response ) {
+                        $read = explode("\r\n",$read);
+                        foreach( $read as $readSplitted ) {
 
-                        // Little trick to handle multiple responses, ie. if the SMTP protocol
-                        // requires us to send multiple consecutive responses
-                        if ( is_array($response) ) {
+                            // Since we are NOT in the DATA mode, we are in regular SMTP command mode
+                            // So let's parse what ever the client connected inputs and simulate SMTP commands responses
+                            // The command line interpreter will always return a reply to the client!
+                            $response = $this->smtp->parseCommand($readSplitted);
 
-                            // Send multiple responses to client
-                            foreach( $response as $r ) {
-                                $client->send($r);
+                            // Based on what the client sent, we can now send a reply back to the client
+                            if ( $response ) {
+
+                                // Little trick to handle multiple responses, ie. if the SMTP protocol
+                                // requires us to send multiple consecutive responses
+                                if ( is_array($response) ) {
+
+                                    // Send multiple responses to client
+                                    foreach( $response as $r ) {
+                                        $client->send($r);
+                                    }
+
+                                } else {
+
+                                    // Send single response to client
+                                    $client->send($response);
+                                
+                                }
+
+                                // Handle SMTP QUIT command
+                                // We have this very nice public variable to check what ever the last
+                                // SMTP command we processed was, so we can act on it
+                                if ( $this->smtp->smtpLastCommand == 'QUIT' ) {
+                                    // Log what is going to happen
+                                    $this->logger->logMessage("[".$client->getPeerAddress()."] Client sent QUIT command, closing connection");
+
+                                    // Handle end of connection
+                                    $this->handleEnd($client);
+
+                                    // End the connectionHandler handle() function
+                                    $this->logger->logMessage("[".$client->getPeerAddress()."] Closed connection (QUIT)");
+                                    return false;
+                                }
+
+                                // Handle SMTP command that break rules
+                                // Be aware that response can be an array, so we need to check for that
+                                if ( !is_array($response) && preg_match('/^503 Error: I can break rules, too/i',$response) ) {
+                                        // Log what is going to happen
+                                        $this->logger->logMessage("[".$client->getPeerAddress()."] Client sent a UNWANTED command at this time, closing connection", 'WARNING');
+
+                                        // Handle end of connection
+                                        $this->handleEnd($client);
+            
+                                        // End the connectionHandler handle() function
+                                        $this->logger->logMessage("[".$client->getPeerAddress()."] Closed connection (FORCED CLOSE)");
+                                        return false;
+                                }
+
+                            }
+                        }
+                    } else {
+
+                        // Since we are NOT in the DATA mode, we are in regular SMTP command mode
+                        // So let's parse what ever the client connected inputs and simulate SMTP commands responses
+                        // The command line interpreter will always return a reply to the client!
+                        $response = $this->smtp->parseCommand($read);
+
+                        // Based on what the client sent, we can now send a reply back to the client
+                        if ( $response ) {
+
+                            // Little trick to handle multiple responses, ie. if the SMTP protocol
+                            // requires us to send multiple consecutive responses
+                            if ( is_array($response) ) {
+
+                                // Send multiple responses to client
+                                foreach( $response as $r ) {
+                                    $client->send($r);
+                                }
+
+                            } else {
+
+                                // Send single response to client
+                                $client->send($response);
+                            
                             }
 
-                        } else {
-
-                            // Send single response to client
-                            $client->send($response);
-                        
-                        }
-
-                        // Handle SMTP QUIT command
-                        // We have this very nice public variable to check what ever the last
-                        // SMTP command we processed was, so we can act on it
-                        if ( $this->smtp->smtpLastCommand == 'QUIT' ) {
-                            // Log what is going to happen
-                            $this->logger->logMessage("[".$client->getPeerAddress()."] Client sent QUIT command, closing connection");
-
-                            // Handle end of connection
-                            $this->handleEnd($client);
-
-                            // End the connectionHandler handle() function
-                            $this->logger->logMessage("[".$client->getPeerAddress()."] Closed connection (QUIT)");
-                            return false;
-                        }
-
-                        // Handle SMTP command that break rules
-                        // Be aware that response can be an array, so we need to check for that
-                        if ( !is_array($response) && preg_match('/^503 Error: I can break rules, too/i',$response) ) {
+                            // Handle SMTP QUIT command
+                            // We have this very nice public variable to check what ever the last
+                            // SMTP command we processed was, so we can act on it
+                            if ( $this->smtp->smtpLastCommand == 'QUIT' ) {
                                 // Log what is going to happen
-                                $this->logger->logMessage("[".$client->getPeerAddress()."] Client sent a UNWANTED command at this time, closing connection", 'WARNING');
+                                $this->logger->logMessage("[".$client->getPeerAddress()."] Client sent QUIT command, closing connection");
 
                                 // Handle end of connection
                                 $this->handleEnd($client);
-    
-                                // End the connectionHandler handle() function
-                                $this->logger->logMessage("[".$client->getPeerAddress()."] Closed connection (FORCED CLOSE)");
-                                return false;
-                        }
 
+                                // End the connectionHandler handle() function
+                                $this->logger->logMessage("[".$client->getPeerAddress()."] Closed connection (QUIT)");
+                                return false;
+                            }
+
+                            // Handle SMTP command that break rules
+                            // Be aware that response can be an array, so we need to check for that
+                            if ( !is_array($response) && preg_match('/^503 Error: I can break rules, too/i',$response) ) {
+                                    // Log what is going to happen
+                                    $this->logger->logMessage("[".$client->getPeerAddress()."] Client sent a UNWANTED command at this time, closing connection", 'WARNING');
+
+                                    // Handle end of connection
+                                    $this->handleEnd($client);
+        
+                                    // End the connectionHandler handle() function
+                                    $this->logger->logMessage("[".$client->getPeerAddress()."] Closed connection (FORCED CLOSE)");
+                                    return false;
+                            }
+
+                        }
                     }
+
                 }
             } else {
                 break;
