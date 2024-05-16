@@ -479,8 +479,12 @@ class SMTPHoneypot {
             case 'MAIL FROM':
                 $output = $this->reply(false,250);
                 $this->addCommandSequence($command); // Important command, Add to sequence array
-                if ( $argument ) {
-                    $this->emailFrom = $argument;
+                // Make sure if it contains spaces to split it and only use the first part
+                if ( strpos($argument," ") !== false ) {
+                    $argument = explode(" ",$argument);
+                    $this->emailFrom = trim($argument[0]);
+                } else {
+                    $this->emailFrom = trim($argument);
                 }
                 break;
             case 'RCPT TO':
@@ -488,7 +492,13 @@ class SMTPHoneypot {
                 $this->addCommandSequence($command); // Important command, Add to sequence array
                 if ( $argument ) {
                     // Push to emailRCPT array
-                    $this->emailRCPT[] = trim($argument);
+                    // Make sure if it contains spaces to split it and only use the first part
+                    if ( strpos($argument," ") !== false ) {
+                        $argument = explode(" ",$argument);
+                        $this->emailRCPT[] = trim($argument[0]);
+                    } else {
+                        $this->emailRCPT[] = trim($argument);
+                    }
                 }
                 break;
             case 'DATA':
