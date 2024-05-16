@@ -197,7 +197,7 @@ class SMTPHoneypot {
 
         // Add Custom X-Latrine related headers - These are not standard headers
         // Also addCustomHeader will add the header to the emailEML between the Received and the actual email data
-        /*
+        
         $this->addCustomHeader("X-Latrine-Queue-ID",$this->emailQueueID);
         $this->addCustomHeader("X-Latrine-Client-IP","%%CLIENTIP%%");
         $this->addCustomHeader("X-Latrine-Client-Port","%%CLIENTPORT%%");
@@ -205,7 +205,7 @@ class SMTPHoneypot {
         $this->addCustomHeader("X-Latrine-Server-Listen",$srvAddress);
         $this->addCustomHeader("X-Latrine-Server-Port",$srvPort);
         $this->addCustomHeader("X-Latrine-Server-System",php_uname());
-        */
+        
     }
 
     // SMTP compliant check order of command sequence
