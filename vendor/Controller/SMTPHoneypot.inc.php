@@ -310,6 +310,10 @@ class SMTPHoneypot {
         // Check if we see the smtpDATAendHEX is present in the hexEndSequence
         if ( strpos($hexEndSequence,$this->smtpDATAendHEX) !== false ) {
 
+            // Log the last 25 bytes of the data (DEBUG)
+            $this->logger->logDebugMessage("[smtp] Last 25 bytes of DATA: ".$rawEndSequence);
+
+
             // Check if we end in ASCII characters in hexEndSequence
             $regex = '/^.*([ -~]+)$/';
             $possibleCommand = false;
