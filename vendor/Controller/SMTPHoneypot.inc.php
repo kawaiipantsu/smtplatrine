@@ -20,6 +20,7 @@ class SMTPHoneypot {
         'QUIT',
         'VRFY',
         'EXPN',
+        'STARTTLS',
         'GET'
     );
     private $smtpCommands = array();
@@ -72,6 +73,11 @@ class SMTPHoneypot {
     }
     public function getSMTPDATAmode() {
         return $this->smtpDATAmode;
+    }
+
+    // Clear last command
+    private function clearLastCommand() {
+        $this->smtpLastCommand = false;
     }
 
     // Add smtp command to array
@@ -424,6 +430,10 @@ class SMTPHoneypot {
     // Parse SMTP Command
     public function parseCommand($data) {
 
+        // First things first, since we are called that means we are potentially recieving a new command
+        // So we clear the last command
+        $this->clearLastCommand();
+
         // Get SMTP command
         $input = trim($data);
         $command = false;
@@ -519,6 +529,10 @@ class SMTPHoneypot {
                     $output = $this->reply(false,501);
                 }
                 break;
+            case 'STARTTLS':
+                $output = $this->reply(" 2.0.0 Ready to start TLS",220);
+                $this->weSecure = true;
+                break;
             case 'RSET':
                 $output = $this->reply(false,250);
                 break;
@@ -578,6 +592,14 @@ class SMTPHoneypot {
     // function to handle closing connection to early
     public function closeConnection() {
         return $this->reply(false,421);
+    }
+
+    // Close connection for idle
+    public function closeConnectionIdle() {
+        return $this->reply(" 4.4.2 Error: timeout exceeded",421);
+    }
+    public function closeConnectionIdleWhileInData() {
+        return $this->reply(" 4.4.2 Error: timeout exceeded while in DATA",421);
     }
 
     // function to handle closing connection to early

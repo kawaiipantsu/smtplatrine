@@ -158,12 +158,18 @@ class Database {
         if ( $this->dbConnected ) {
 
             if ( $doReturn ) {
-                $result = mysqli_query($this->db, $query);
-                $rowcount = mysqli_num_rows($result);
+                try {
+                    $result = mysqli_query($this->db, $query);
+                } catch (Exception $e) {
+                    $this->logger->logErrorMessage('[database] Exception catch: ' . trim($e->getMessage()));
+                    $result = false;
+                }
+                
                 if ( $result === false ) {
                     if ( $doLogging ) $this->logger->logErrorMessage('[database] Query failed: ' . trim(mysql_error()));
                     return false;
                 } else {
+                    $rowcount = mysqli_num_rows($result);
                     if ( $doLogging )$this->logger->logDebugMessage('[database] Query success: ' . $query . ' returned ' . $rowcount . ' rows');
                     return $result;
                 }
@@ -202,6 +208,118 @@ class Database {
             // Log the result and show error
             $this->logger->logErrorMessage('[database] Ping: Failed ('.trim($this->db->error).')');
             $this->dbConnected = false;
+        }
+    }
+
+    // Generate random password
+    public function generateRandomPassword($len = 12) {
+        $chars = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#$%^&*()_+';
+        $password = '';
+        for ( $i = 0; $i < $len; $i++ ) {
+            $password .= $chars[rand(0,strlen($chars)-1)];
+        }
+        return $password;
+    }
+
+    // Get clients
+    public function getHoneypotClients( $limit = false ) {
+        // Establish a connection to the database
+        $this->dbMysqlConnect();
+
+        if ( $this->dbConnected ) {
+            // Prepare the query
+            if ( $limit) {
+                $query = "SELECT *,GREATEST(clients_seen_last, clients_seen_first) AS sortDate FROM honeypot_clients ORDER BY sortDate DESC LIMIT ".intval($limit);
+            } else {
+                $query = "SELECT *,GREATEST(clients_seen_last, clients_seen_first) AS sortDate FROM honeypot_clients ORDER BY sortDate DESC";
+            }
+
+            // Do the query
+            $result = $this->dbMysqlRawQuery($query,true,false); // Query, Return sql resource, No logging
+
+            // Check if we got a result
+            if ( $result ) {
+                $clients = array();
+                while ( $row = mysqli_fetch_assoc($result) ) {
+                    $clients[] = $row;
+                }
+                return $clients;
+            } else {
+                return false;
+            }
+        } else {
+            return false;
+        }
+    }
+
+    /// Function to set default www admin password if none exists
+    public function setDefaultAdminPassword( $password = false ) {
+        // Establish a connection to the database
+        $this->dbMysqlConnect();
+
+        if ( $this->dbConnected && $password ) {
+            // Check if we have any users in the database
+            $query = "SELECT id FROM www_users LIMIT 1";
+            $result = $this->dbMysqlRawQuery($query,true,false); // Query, Return sql resource, No logging
+            $rowcount = mysqli_num_rows($result);
+
+            
+
+            // If we have no users then we can set the default password
+            if ( $rowcount == 0 ) {
+                $query = "INSERT INTO www_users (users_username,users_password,users_fullname,users_email,users_role) VALUES (";
+                $query .= "'admin',";
+                $query .= "'".password_hash($password,PASSWORD_DEFAULT)."',";
+                $query .= "'Administrator',";
+                $query .= "'admin@localhost',";
+                $query .= "'Admin'";
+                $query .= ")";
+                $adminID = $result = $this->dbMysqlRawQuery($query,false,false); // Query, No return sql resource, No logging
+                $this->logger->logMessage('[database] Setting WEBUI "admin" password to: "'.$password.'"','WARNING');
+                return $adminID;
+            } else {
+                return false;
+            }
+        } else {
+            return false;
+        }
+    }
+
+    // Check web login and return role
+    public function checkWebLogin( $username = false, $password = false ) {
+        // Establish a connection to the database
+        $this->dbMysqlConnect();
+
+        if ( $this->dbConnected && $username && $password ) {
+            // Prepare the query
+            $query = "SELECT * FROM www_users WHERE users_username = '".mysqli_real_escape_string($this->db,$username)."' LIMIT 1";
+
+            // Do the query
+            try {
+                $result = $this->dbMysqlRawQuery($query,true,false); // Query, Return sql resource, No logging
+            } catch (Exception $e) {
+                $this->logger->logErrorMessage('[database] Exception catch: ' . trim($e->getMessage()));
+                $result = false;
+            }
+
+            // Check if we got a result
+            if ( $result ) {
+                $row = mysqli_fetch_assoc($result);
+                if ( $row ) {
+                    // Check if password is correct
+                    if ( password_verify($password,$row['users_password']) ) {
+                        return $row;
+                    } else {
+                        return false;
+                    }
+                } else {
+                    return false;
+                }
+            } else {
+                return false;
+            }
+        } else {
+            return false;
         }
     }
 

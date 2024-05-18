@@ -10,6 +10,7 @@ class Logger {
     private $namespace = __NAMESPACE__;
     private $fullName = false;
     private $pidTitle = false;
+    private $isDebug = false;
     
     // Constructor
     public function __construct($logName='logger', $namespace=__NAMESPACE__) {
@@ -22,8 +23,15 @@ class Logger {
         // I'm still not sure what is best here, it's all visual and debug that depends on it
         //$this->logName = isset(cli_get_process_title()) ? trim(cli_get_process_title()) : $logName;
         $this->logName = trim($logName);
-        $this->pidTitle = trim(cli_get_process_title());
-        
+        if ( php_sapi_name() === 'cli' ) $this->pidTitle = trim(cli_get_process_title());
+        else {
+            // Check if $_SERVER['SERVER_SOFTWARE'] exists
+            if ( isset($_SERVER['SERVER_SOFTWARE']) ) {
+                $this->pidTitle = trim($_SERVER['SERVER_SOFTWARE'])."-PHP";
+            } else {
+                $this->pidTitle = "PHP";
+            }
+        }
         // Set full name
         if ( $this->logName != $this->namespace) {
             $this->fullName = $this->namespace."/".$this->logName;
@@ -42,6 +50,8 @@ class Logger {
             $this->loggerEnabled = false;
         } else {
             $this->loggerEnabled = true;
+            // Set if debug is enabled
+            $this->isDebug = strtolower(trim($this->config['logger']['logger_debug'])) == "1" ? true : false;
         }
 
         // Log that logger is initialized
@@ -59,8 +69,8 @@ class Logger {
         $this->logDebugMessage("[logger] Vendor ".$this->namespace." log level set: ".$vendor_log_level);
 
         // Set the new log level
-        $this->enableDisplay();
-        //$this->disableDisplay();
+        if ( $this->isDebug ) $this->enableDisplay();
+        else $this->disableDisplay();
 
         // Build int from constants
         $level_constants = explode('|', $vendor_log_level);

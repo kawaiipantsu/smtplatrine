@@ -151,7 +151,7 @@ class connectionHandler {
             // Check if buffer is empty else parse data
             //if ( empty($read) === false ) {
             if ( $read != '' ) {
-                
+
                 // THIS IS THE MAIN LOOP TO PROCESS INCOMING DATA
                 // As this is a SMTP Honeypot, we shift to a mixture of SMTP and DATA mode
                 // Also remember the SMTP protocol, even if we are "done" and receive a mail
@@ -270,6 +270,19 @@ class connectionHandler {
                                         return false;
                                 }
 
+                                // Handle STARTTLS command
+                                // We have this very nice public variable to check what ever the last
+                                // SMTP command we processed was, so we can act on it
+                                if ( $this->smtp->smtpLastCommand == 'STARTTLS' ) {
+                                    // Log what is going to happen
+                                    $this->logger->logMessage("[".$client->getPeerAddress()."] Client sent STARTTLS command, not supported!",'WARNING');
+
+                                    // But this would be the place that we where to initiate the TLS connection / ie. start the encryption
+                                    // By calling functions that would manipulate the Client Socket !
+                                    // $client->enableEncryption();
+
+                                }
+
                             }
                         }
                     } else {
@@ -327,6 +340,19 @@ class connectionHandler {
                                     return false;
                             }
 
+                            // Handle STARTTLS command
+                            // We have this very nice public variable to check what ever the last
+                            // SMTP command we processed was, so we can act on it
+                            if ( $this->smtp->smtpLastCommand == 'STARTTLS' ) {
+                                // Log what is going to happen
+                                $this->logger->logMessage("[".$client->getPeerAddress()."] Client sent STARTTLS command, not supported!",'WARNING');
+
+                                // But this would be the place that we where to initiate the TLS connection / ie. start the encryption
+                                // By calling functions that would manipulate the Client Socket !
+                                // $client->enableEncryption();
+
+                            }
+
                         }
                     }
 
@@ -340,6 +366,20 @@ class connectionHandler {
                 $this->logger->logMessage("[".$client->getPeerAddress()."] Disconnected");
                 return false;
             }
+        }
+
+        // Check if they where idle
+        if ( $client->isIdle() ) {
+            $this->logger->logMessage("[".$client->getPeerAddress()."] Idle timeout (".$client->getIdleTime()."), closing connection");
+            // Check if we where also in DATA mode
+            if ( $this->smtp->getSMTPDATAmode() ) {
+                $client->send($this->smtp->closeConnectionIdleWhileInData());
+            } else {
+                $client->send($this->smtp->closeConnectionIdle());
+            }
+            $client->close();
+            $this->logger->logMessage("[".$client->getPeerAddress()."] Disconnected");
+            return false;
         }
 
         // Close connection

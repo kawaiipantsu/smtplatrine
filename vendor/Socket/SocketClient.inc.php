@@ -11,7 +11,12 @@ class SocketClient {
     private $peerport;
     private $logger;
     private $config = false;
-
+    private $encryptionEnabled = false;
+    private $encryptionMethod = STREAM_CRYPTO_METHOD_ANY_SERVER;
+    private $socketRecvTimeout = 60;
+    private $socketSendTimeout = 60;
+    private $clientIdleTimer = 0;
+    private $clientIdle = false;
     private $defaultBufferSize = 1024;
 
     // Constructor
@@ -40,11 +45,42 @@ class SocketClient {
         
         $this->connection = $connection;
 
+        // Get timeout value fro config or set default
+		$this->socketRecvTimeout = array_key_exists('server_idle_timeout',$this->config['server']) ? intval($this->config['server']['server_idle_timeout']) : 60;
+		$this->socketSendTimeout = array_key_exists('server_idle_timeout',$this->config['server']) ? intval($this->config['server']['server_idle_timeout']) : 60;
+
     }
 
     // Destructor
     public function __destruct() {
         // Nothing to do
+    }
+
+    // Refresh idletimer with unix timestamp
+    private function refreshIdleTimer() {
+        $this->clientIdleTimer = time();
+        $this->clientIdle = false;
+    }
+
+    // Return timeouts
+    public function getTimeouts() {
+        return array('recv' => $this->socketRecvTimeout, 'send' => $this->socketSendTimeout);
+    }
+
+    // Tell how long since last idletimer was refreshed
+    public function getIdleTime() {
+        return time() - $this->clientIdleTimer;
+    }
+
+    // Return if client is idle
+    public function isIdle() {
+        if ( time() - $this->clientIdleTimer > $this->socketRecvTimeout-1 ) {
+            $this->clientIdle = true;
+        } else {
+            $this->clientIdle = false;
+        }
+
+        return $this->clientIdle;
     }
 
     // Load config file from etc
@@ -58,6 +94,7 @@ class SocketClient {
         if ( false === @socket_write($this->connection, $message, strlen($message)) ) {
             $this->logger->logMessage('[client] '.socket_strerror(socket_last_error()), 'WARNING');
         }
+        $this->refreshIdleTimer(); // We sent data so we cant expect the client to be idle just yet
     }
 
     // Socket Client Read data
@@ -73,6 +110,9 @@ class SocketClient {
         if ( ( $buf = @socket_read( $this->connection, $len, PHP_BINARY_READ  ) ) === false ) {
             return null;
         }
+
+        $this->refreshIdleTimer(); // We received data so we are not idle
+
         return $buf;
     }
 
@@ -94,6 +134,26 @@ class SocketClient {
     // Socket Client Get Peer Port
     public function getPeerPort() {
         return $this->peerport;
+    }
+
+    // Enable encyption
+    // WARNING - DOES NOT WORK!!!!
+    public function enableEncryption() {
+
+        //$stream = socket_export_stream($this->connection);
+        //$context = socket_export_stream($this->connection, true);
+        stream_context_set_option($this->connection, [
+            "ssl" => [
+                "local_cert" => __DIR__."/../../contrib/test.pem",
+                "allow_self_signed" => true,
+                "verify_peer" => false,
+                "verify_peer_name" => false,
+                "verify_host" => false
+            ]
+
+        ]);
+        stream_socket_enable_crypto($this->connection, true, $this->encryptionMethod);
+
     }
 
     // Socket Client Close

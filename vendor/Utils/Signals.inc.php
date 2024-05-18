@@ -25,25 +25,67 @@ class Signals {
     }
 
     // Handler for SIGINT (^C)
+    public function doSIGCHLD($signo) {
+        // Let's just inform the logs that we are closing down
+        $this->logger->logMessage('Caught SIGCHLD', 'WARNING');
+        return true;
+    }
+
+    // Handler for SIGINT (^C)
     public function doSIGINT($signo) {
-        // LEt's just inform the logs that we are closing down
-        $this->logger->logMessage('Caught SIGINT, shutting down now!', 'WARNING');
-        $this->logger->logMessage('[server] Stopped listening for connections');
-        $this->logger->logMessage('[server] EXIT=0');
-        $this->logger->logMessage(">>> SMTPLATRINE - Goodbye!");
-        // Clean exit
-        exit(0);
+        // This will be called for anyone (parent/child) when ^C is pressed (SIGINT)
+        // Let's just inform the logs that we are closing down
+
+        $pid = getmypid();
+
+        if ( $this->serverObject ) {
+            $parent = $this->serverObject->serverPid;
+        }
+        if ( $parent == $pid ) {
+            $this->logger->logMessage("[server] >>> Posix SIGNAL received '".trim($this->signalToString($signo))."","WARNING");
+            $this->logger->logMessage('[server] Stopped listening for connections');
+            $this->logger->logMessage('[server] EXIT=0');
+            $this->logger->logMessage(">>> SMTPLATRINE - Goodbye!");
+            // Clean exit
+            exit(0);
+        } else {
+            $this->logger->logMessage('[client] >>> Caught SIGINT, shutting down now!', 'WARNING');
+            $this->logger->logMessage('[client] Disconnected');
+            // Clean exit
+            exit(0);
+        }
+
+        
     }
 
     // Handler for SIGTERM
     public function doSIGTERM($signo) {
         // Let's just inform the logs that we are closing down
-        $this->logger->logMessage(">>> Posix SIGNAL received '".trim($this->signalToString($signo))."' - Goodbye","WARNING");
-        $this->logger->logMessage('[server] Stopped listening for connections');
-        $this->logger->logMessage('[server] EXIT=0');
-        $this->logger->logMessage(">>> SMTPLATRINE - Goodbye!");
-        // Clean exit
-        exit(0);
+        $pid = getmypid();
+
+        if ( $this->serverObject ) {
+            $parent = $this->serverObject->serverPid;
+        }
+        if ( $parent == $pid ) {
+            $this->logger->logMessage("[server] >>> Posix SIGNAL received '".trim($this->signalToString($signo))."' - Goodbye","WARNING");
+            $this->logger->logMessage('[server] Stopped listening for connections');
+            $this->logger->logMessage('[server] EXIT=0');
+            $this->logger->logMessage(">>> SMTPLATRINE - Goodbye!");
+            // Clean exit
+            exit(0);
+        } else {
+
+            // Let's see if we have any hanging childs
+            $childPids = $this->setServerObject->childProcesses;
+            foreach ( $childPids as $pid ) {
+                $this->logger->logMessage("[client] >>> Killing child process $pid","WARNING");
+                //posix_kill($pid,SIGKILL);
+            }
+            // Clean exit
+            exit(0);
+        }
+        
+        
     }
 
     // Handler for SIGHUB (RELLOAD)
