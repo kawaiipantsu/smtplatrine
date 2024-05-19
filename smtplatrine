@@ -27,6 +27,23 @@ set_time_limit(0);
 // Set application name
 cli_set_process_title("smtplatrine");
 
+// Let's check we have the requirements to run the application
+// We moved this away from the autoloader as then we can use that from www as well where these extensions are not required
+if( ! extension_loaded('sockets' ) ) {
+	echo "This application requires sockets extension (http://www.php.net/manual/en/sockets.installation.php)\n";
+	exit(-1);
+}
+
+if( ! extension_loaded('pcntl' ) ) {
+	echo "This application requires PCNTL extension (http://www.php.net/manual/en/pcntl.installation.php)\n";
+	exit(-1);
+}
+
+if( ! extension_loaded('mailparse' ) ) {
+	echo "This application requires mailparse extension (https://www.php.net/manual/en/mailparse.installation.php)\n";
+	exit(-1);
+}
+
 // Try using my makeshift autoloader ...
 // This is junk, but it works for now.
 require_once 'vendor/autoload.php';
@@ -64,7 +81,8 @@ pcntl_signal(SIGHUP, [$signalHandler, 'doSIGHUP']);
 // This is Magic sauce, we ignore the signal from child processes
 // This eliminates the need for a signal handler in the parent process
 // And we will have no hanging zombie processes!
-pcntl_signal(SIGCHLD, SIG_IGN);
+pcntl_signal(SIGCHLD, [$signalHandler, 'doSIGCHLD']);
+//pcntl_signal(SIGCHLD, SIG_IGN);
 
 // Other Signals that we want to catch for logging but not act on
 pcntl_signal(SIGUSR1, [$signalHandler, 'doNOTHING']);

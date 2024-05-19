@@ -158,12 +158,18 @@ class Database {
         if ( $this->dbConnected ) {
 
             if ( $doReturn ) {
-                $result = mysqli_query($this->db, $query);
-                $rowcount = mysqli_num_rows($result);
+                try {
+                    $result = mysqli_query($this->db, $query);
+                } catch (Exception $e) {
+                    $this->logger->logErrorMessage('[database] Exception catch: ' . trim($e->getMessage()));
+                    $result = false;
+                }
+                
                 if ( $result === false ) {
                     if ( $doLogging ) $this->logger->logErrorMessage('[database] Query failed: ' . trim(mysql_error()));
                     return false;
                 } else {
+                    $rowcount = mysqli_num_rows($result);
                     if ( $doLogging )$this->logger->logDebugMessage('[database] Query success: ' . $query . ' returned ' . $rowcount . ' rows');
                     return $result;
                 }
@@ -202,6 +208,118 @@ class Database {
             // Log the result and show error
             $this->logger->logErrorMessage('[database] Ping: Failed ('.trim($this->db->error).')');
             $this->dbConnected = false;
+        }
+    }
+
+    // Generate random password
+    public function generateRandomPassword($len = 12) {
+        $chars = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#$%^&*()_+';
+        $password = '';
+        for ( $i = 0; $i < $len; $i++ ) {
+            $password .= $chars[rand(0,strlen($chars)-1)];
+        }
+        return $password;
+    }
+
+    // Get clients
+    public function getHoneypotClients( $limit = false ) {
+        // Establish a connection to the database
+        $this->dbMysqlConnect();
+
+        if ( $this->dbConnected ) {
+            // Prepare the query
+            if ( $limit) {
+                $query = "SELECT *,GREATEST(clients_seen_last, clients_seen_first) AS sortDate FROM honeypot_clients ORDER BY sortDate DESC LIMIT ".intval($limit);
+            } else {
+                $query = "SELECT *,GREATEST(clients_seen_last, clients_seen_first) AS sortDate FROM honeypot_clients ORDER BY sortDate DESC";
+            }
+
+            // Do the query
+            $result = $this->dbMysqlRawQuery($query,true,false); // Query, Return sql resource, No logging
+
+            // Check if we got a result
+            if ( $result ) {
+                $clients = array();
+                while ( $row = mysqli_fetch_assoc($result) ) {
+                    $clients[] = $row;
+                }
+                return $clients;
+            } else {
+                return false;
+            }
+        } else {
+            return false;
+        }
+    }
+
+    /// Function to set default www admin password if none exists
+    public function setDefaultAdminPassword( $password = false ) {
+        // Establish a connection to the database
+        $this->dbMysqlConnect();
+
+        if ( $this->dbConnected && $password ) {
+            // Check if we have any users in the database
+            $query = "SELECT id FROM www_users LIMIT 1";
+            $result = $this->dbMysqlRawQuery($query,true,false); // Query, Return sql resource, No logging
+            $rowcount = mysqli_num_rows($result);
+
+            
+
+            // If we have no users then we can set the default password
+            if ( $rowcount == 0 ) {
+                $query = "INSERT INTO www_users (users_username,users_password,users_fullname,users_email,users_role) VALUES (";
+                $query .= "'admin',";
+                $query .= "'".password_hash($password,PASSWORD_DEFAULT)."',";
+                $query .= "'Administrator',";
+                $query .= "'admin@localhost',";
+                $query .= "'Admin'";
+                $query .= ")";
+                $adminID = $result = $this->dbMysqlRawQuery($query,false,false); // Query, No return sql resource, No logging
+                $this->logger->logMessage('[database] Setting WEBUI "admin" password to: "'.$password.'"','WARNING');
+                return $adminID;
+            } else {
+                return false;
+            }
+        } else {
+            return false;
+        }
+    }
+
+    // Check web login and return role
+    public function checkWebLogin( $username = false, $password = false ) {
+        // Establish a connection to the database
+        $this->dbMysqlConnect();
+
+        if ( $this->dbConnected && $username && $password ) {
+            // Prepare the query
+            $query = "SELECT * FROM www_users WHERE users_username = '".mysqli_real_escape_string($this->db,$username)."' LIMIT 1";
+
+            // Do the query
+            try {
+                $result = $this->dbMysqlRawQuery($query,true,false); // Query, Return sql resource, No logging
+            } catch (Exception $e) {
+                $this->logger->logErrorMessage('[database] Exception catch: ' . trim($e->getMessage()));
+                $result = false;
+            }
+
+            // Check if we got a result
+            if ( $result ) {
+                $row = mysqli_fetch_assoc($result);
+                if ( $row ) {
+                    // Check if password is correct
+                    if ( password_verify($password,$row['users_password']) ) {
+                        return $row;
+                    } else {
+                        return false;
+                    }
+                } else {
+                    return false;
+                }
+            } else {
+                return false;
+            }
+        } else {
+            return false;
         }
     }
 
@@ -245,9 +363,70 @@ class Database {
 
     }
 
+    // Update internal stats table
+    public function updateStats( $table = false, $value = 1 ) {
+        // Nothing yet, just preparing
+    }
+
+    // -- Save credentials
+    public function saveCredentials( $username = '', $password = '', $type = "NONE" ) {
+        // Establish a connection to the database
+        $this->dbMysqlConnect();
+
+        switch ( strtoupper($type) ) {
+            case 'NONE':
+                $enumType = 'NONE';
+                break;
+            case 'PLAIN':
+                $enumType = 'PLAIN';
+                break;
+            case 'LOGIN':
+                $enumType = 'LOGIN';
+                break;
+            default:
+                $enumType = 'NONE';
+                break;
+        }
+
+        // Build an array of credentials
+        $credentials = array(
+            'username'  => base64_encode($username),
+            'password'  => base64_encode($password),
+            'mechanism' => $enumType
+        );
+        $serialized = serialize($credentials);
+
+        // Quick fix for some clients sending username and password in different charset
+        // This will replace unknown chars with '?' and make the credential unusable but hey we don't crash!
+        $username = mb_convert_encoding($username, 'UTF-8', 'UTF-8');
+        $password = mb_convert_encoding($password, 'UTF-8', 'UTF-8');
+
+        if ( $this->dbConnected && $username && $password && $type ) {
+            // Prepare the query
+            $query = "INSERT INTO honeypot_credentials (credentials_username,credentials_password,credentials_type,credentials_serialized_original) VALUES (";
+            $query .= "'".mysqli_real_escape_string($this->db,$username)."',";
+            $query .= "'".mysqli_real_escape_string($this->db,$password)."',";
+            $query .= "'".mysqli_real_escape_string($this->db,$enumType)."',";
+            $query .= "'".mysqli_real_escape_string($this->db,$serialized)."'";
+            $query .= ")";
+
+            // Do the query
+            $id = $this->dbMysqlRawQuery($query,false,false); // Query, No return sql resource, No logging
+        }
+    }
+
     // -- INSERT RECIPIENT EMAIL ADDRESS into database
     private function insertRecipient( $email = false ) {
 
+        // RCPT TO can contain extra SMTP commands after the email separated by space.
+        // We only want the email address, so we split it by space and take the first part
+        // But we can only explode on space if we have a space in the string check via if
+        if ( strpos($email,' ') !== false ) {
+            $email = explode(' ',$email);
+            $email = $email[0];
+            $email = trim($email);
+        }
+  
         // Try to split up email in username, tags and domain
         $emailParts = explode('@',$email);
         $emailUsername = $emailParts[0];
@@ -262,7 +441,8 @@ class Database {
 
         if ( $this->dbConnected && $email ) {
             // Prepare the insert query on duplicate key update
-            $query = "INSERT INTO honeypot_recipients (recipients_address,recipients_username,recipients_tags,recipients_domain) VALUES (";
+            $query = "INSERT INTO honeypot_recipients (recipients_seen,recipients_address,recipients_username,recipients_tags,recipients_domain) VALUES (";
+            $query .= "1,";
             $query .= "'".mysqli_real_escape_string($this->db,$email)."',";
             $query .= "'".mysqli_real_escape_string($this->db,$emailUsername)."',";
             $query .= "'".mysqli_real_escape_string($this->db,$emailTags)."',";
@@ -369,8 +549,10 @@ class Database {
 
         if ( $this->dbConnected && $clientIP ) {
             // Prepare the insert query on duplicate key update
-            $query = "INSERT INTO honeypot_clients (clients_ip,clients_hostname,clients_as_number,clients_as_name,clients_geo_country_code,clients_geo_country_name,clients_geo_continent,clients_geo_eu_union,clients_geo_city_name,clients_geo_city_postalcode,clients_geo_subdivisionname,clients_geo_latitude,clients_geo_longitude,client_location_accuracy_radius,clients_timezone) VALUES (";
+            $query = "INSERT INTO honeypot_clients (clients_seen,clients_ip,clients_hostname,clients_as_number,clients_as_name,clients_geo_country_code,clients_geo_country_name,clients_geo_continent,clients_geo_eu_union,clients_geo_city_name,clients_geo_city_postalcode,clients_geo_subdivisionname,clients_geo_latitude,clients_geo_longitude,client_location_accuracy_radius,clients_timezone) VALUES (";
             
+            $query .= "1,";
+
             if ( isset($clientIP) ) $query .= "'".mysqli_real_escape_string($this->db,$clientIP)."',";
             else $query .= "NULL,";
 
@@ -422,7 +604,10 @@ class Database {
             // Do the query (INSERT so it will return the ID of the row if it's a new one)
             $_notused = $this->dbMysqlRawQuery($query,false,false); // Query, No return sql resource, No logging
 
+            // We saw a client, so we should update the stats
+            $this->updateStats('stats_total_clients');
         }
+  
     }
 
     // -- INSERT ATTACHMENT
@@ -537,6 +722,10 @@ class Database {
                     case 'emails_attachments':
                         $fields[$key] = $value;
                         break;
+                    case 'emails_header_date':
+                        if ( $value == "NOW()") $fields[$key] = "current_timestamp()";
+                        else $fields[$key] = date('Y-m-d H:i:s',strtotime($value));
+                        break;
                     default:
                         $fields[$key] = trim($value);
                         break;
@@ -567,7 +756,12 @@ class Database {
                     } elseif ( $value['type'] === 'float' ) {
                         $query .= floatval($value['value']);
                     } else {
-                        $query .= "'".$value['value']."'";
+                        // Check if native mysql commands, should not be quoted
+                        if ( $value['value'] == "current_timestamp()" ) {
+                            $query .= $value['value'];
+                        } else {
+                            $query .= "'".$value['value']."'";
+                        }
                     }
                     $query .= ",";
                 }

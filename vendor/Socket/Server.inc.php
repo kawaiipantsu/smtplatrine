@@ -13,6 +13,14 @@ class Server {
 	private $meta;
 	private $db;
 	private $config = false;
+	public $serverPid = false;
+
+	private $socketRecvTimeout = 60;
+	private $socketSendTimeout = 60;
+
+	private $enableEncryption = false;
+	private $encrytionCertCRT = false;
+	private $encrytionCertKEY = false;
 
 	private $acl_blacklist_ip = array();
 	private $acl_blacklist_geo = array();
@@ -39,6 +47,14 @@ class Server {
 		$this->address = strtolower(trim($this->config['server']['server_listen']));
 		$this->port = strtolower(trim($this->config['server']['server_port']));
 
+		// Get timeout value fro config or set default
+		$this->socketRecvTimeout = array_key_exists('server_idle_timeout',$this->config['server']) ? intval($this->config['server']['server_idle_timeout']) : 60;
+		$this->socketSendTimeout = array_key_exists('server_idle_timeout',$this->config['server']) ? intval($this->config['server']['server_idle_timeout']) : 60;
+
+		$this->enableEncryption = trim($this->config['server']['server_enryption']) == "1" ? true : false;
+		$this->encrytionCertCRT = array_key_exists('server_cert_crt',$this->config['server']) ? intval($this->config['server']['server_cert_crt']) : false;
+		$this->encrytionCertKEY = array_key_exists('server_cert_key',$this->config['server']) ? intval($this->config['server']['server_cert_key']) : false;
+
 		// Check if protection acl is enabled and then refresh acl lists
 		if ( array_key_exists('protection',$this->config) ) {
 
@@ -57,6 +73,17 @@ class Server {
 				}
 			}
 		}
+
+		// Get my pid
+		$this->serverPid = getmypid();
+
+		// Since the serer class is also using the DB class i have chosen to place the creation of the "default" admin password
+		// here. This will create a random admin password that you can use to get access to the web ui to look at the data.
+		// The password will be outputted in the log file for you to grep for. etc.
+		$randomAdminPassword = $this->db->generateRandomPassword(12);
+		// Set admin password if user table is empty!
+        $this->db->setDefaultAdminPassword($randomAdminPassword);
+
 
 		// Get max connections allowed from protection
 		$this->maxClients = array_key_Exists("protection_max_connections",$this->config['protection']) ? intval($this->config['protection']['protection_max_connections']) : 10;
@@ -84,6 +111,23 @@ class Server {
 		$this->logger->logDebugMessage('[server] Creating socket on ' . $this->address . ':' . $this->port);
 		$this->createSocket();
 		$this->bindSocket();
+		$this->encryptionPrepare();
+	}
+
+	// Prepare encryption
+	private function encryptionPrepare() {
+		if ( $this->enableEncryption ) {
+			/*if ( $this->encrytionCertCRT && $this->encrytionCertKEY ) {
+				$this->logger->logMessage('[server] Encryption enabled, using certificates: ' . $this->encrytionCertCRT . ' and ' . $this->encrytionCertKEY);
+				stream_context_set_option($server, ["ssl" => [
+					"local_cert" => $this->encrytionCertCRT,
+					"local_pk" => $this->encrytionCertKEY,
+				]]);
+			} else {
+				$this->logger->logErrorMessage('[server] Encryption enabled but no certificates set');
+			}*/
+		}
+
 	}
 
 	// Listen for connections
@@ -216,6 +260,14 @@ class Server {
 			$this->logger->logMessage('[server] Spawned client on pid '.$spawnClient->getPID());
 		}
     }
+
+	// Remove pid from childProcesses
+	public function removeChildPID( $pid ) {
+		if ( in_array($pid,$this->childProcesses) ) {
+			$key = array_search($pid,$this->childProcesses);
+			unset($this->childProcesses[$key]);
+		}
+	}
 
 	// Initiate refresh of ACL public
 	public function reloadACL( $blacklist = false ) {
@@ -364,9 +416,39 @@ class Server {
 				SocketException::CANT_CREATE_SOCKET, socket_strerror( socket_last_error() )
 			);
 		}
+
+		// Now we setup any options and special things this socket should have
+		// Set socket timeouts
+		socket_set_option( $this->server, SOL_SOCKET, SO_RCVTIMEO, array('sec'=>$this->socketRecvTimeout, 'usec'=>0) );
+		socket_set_option( $this->server, SOL_SOCKET, SO_SNDTIMEO, array('sec'=>$this->socketSendTimeout, 'usec'=>0) );
+
+		// Set socket reuse options
 		socket_set_option( $this->server, SOL_SOCKET, SO_REUSEADDR, 1);
+
 		$this->logger->logDebugMessage('[server] Socket created, ready for binding');
 	}
+
+	// Create SSL/TLS Cert
+	public function createSSLCert($pem_file, $pem_passphrase, $pem_dn) {
+		//create ssl cert for this scripts life.
+		
+		 //Create private key
+		 $privkey = openssl_pkey_new();
+		
+		 //Create and sign CSR
+		 $cert    = openssl_csr_new($pem_dn, $privkey);
+		 $cert    = openssl_csr_sign($cert, null, $privkey, 365);
+		
+		 //Generate PEM file
+		 $pem = array();
+		 openssl_x509_export($cert, $pem[0]);
+		 openssl_pkey_export($privkey, $pem[1], $pem_passphrase);
+		 $pem = implode($pem);
+		
+		 //Save PEM file
+		 file_put_contents($pem_file, $pem);
+		 chmod($pem_file, 0600);
+		}
 
 	// Bind the socket
 	private function bindSocket() {
