@@ -27,7 +27,17 @@ class Signals {
     // Handler for SIGINT (^C)
     public function doSIGCHLD($signo) {
         // Let's just inform the logs that we are closing down
-        $this->logger->logMessage('Caught SIGCHLD', 'WARNING');
+       
+        $pid = getmypid();
+
+        if ( $this->serverObject ) {
+            $parent = $this->serverObject->serverPid;
+        }
+        if ( $parent == $pid ) {
+            $this->logger->logMessage('[server] >>> Caught SIGCHLD from child', 'WARNING');
+        } else {
+            $this->logger->logMessage('[client] >>> Caught SIGCHLD?', 'WARNING');
+        }
         return true;
     }
 
@@ -42,14 +52,14 @@ class Signals {
             $parent = $this->serverObject->serverPid;
         }
         if ( $parent == $pid ) {
-            $this->logger->logMessage("[server] >>> Posix SIGNAL received '".trim($this->signalToString($signo))."","WARNING");
+            $this->logger->logMessage("[server] >>> Posix SIGNAL received '".trim($this->signalToString($signo))."'","WARNING");
             $this->logger->logMessage('[server] Stopped listening for connections');
             $this->logger->logMessage('[server] EXIT=0');
             $this->logger->logMessage(">>> SMTPLATRINE - Goodbye!");
             // Clean exit
             exit(0);
         } else {
-            $this->logger->logMessage('[client] >>> Caught SIGINT, shutting down now!', 'WARNING');
+            $this->logger->logMessage('[client] >>> Server wants to shutdown, i better leave then!', 'WARNING');
             $this->logger->logMessage('[client] Disconnected');
             // Clean exit
             exit(0);

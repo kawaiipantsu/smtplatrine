@@ -340,6 +340,14 @@ class connectionHandler {
                                     return false;
                             }
 
+                            // Special rule to handle if we saw any authentication action :)
+                            if ( !is_array($response) && preg_match('/^235 2.7.0 Authentication succeeded/i',$response) ) {
+                                // Log what is going to happen
+                                $this->logger->logMessage("[".$client->getPeerAddress()."] Client sent us credentials, saving them");
+                                $creds = $this->smtp->getAuthCredentials();
+                                $this->db->saveCredentials($creds['username'],$creds['password'],$creds['mechanism']);
+                            }
+
                             // Handle STARTTLS command
                             // We have this very nice public variable to check what ever the last
                             // SMTP command we processed was, so we can act on it
@@ -350,6 +358,13 @@ class connectionHandler {
                                 // But this would be the place that we where to initiate the TLS connection / ie. start the encryption
                                 // By calling functions that would manipulate the Client Socket !
                                 // $client->enableEncryption();
+
+                                // Handle end of connection
+                                $this->handleEnd($client);
+        
+                                // End the connectionHandler handle() function
+                                $this->logger->logMessage("[".$client->getPeerAddress()."] Closed connection (No STARTTLS)");
+                                return false;
 
                             }
 

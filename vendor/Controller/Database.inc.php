@@ -363,6 +363,44 @@ class Database {
 
     }
 
+    // -- Save credentials
+    public function saveCredentials( $username = false, $password = false, $type = "NONE" ) {
+        // Establish a connection to the database
+        $this->dbMysqlConnect();
+
+        switch ( strtoupper($type) ) {
+            case 'NONE':
+                $enumType = 'NONE';
+                break;
+            case 'PLAIN':
+                $enumType = 'PLAIN';
+                break;
+            case 'LOGIN':
+                $enumType = 'LOGIN';
+                break;
+            default:
+                $enumType = 'NONE';
+                break;
+        }
+
+        // Quick fix for some clients sending username and password in different charset
+        // This will replace unknown chars with '?' and make the credential unusable but hey we don't crash!
+        $username = mb_convert_encoding($username, 'UTF-8', 'UTF-8');
+        $password = mb_convert_encoding($password, 'UTF-8', 'UTF-8');
+
+        if ( $this->dbConnected && $username && $password && $type ) {
+            // Prepare the query
+            $query = "INSERT INTO honeypot_credentials (credentials_username,credentials_password,credentials_type) VALUES (";
+            $query .= "'".mysqli_real_escape_string($this->db,$username)."',";
+            $query .= "'".mysqli_real_escape_string($this->db,$password)."',";
+            $query .= "'".mysqli_real_escape_string($this->db,$enumType)."'";
+            $query .= ")";
+
+            // Do the query
+            $id = $this->dbMysqlRawQuery($query,false,false); // Query, No return sql resource, No logging
+        }
+    }
+
     // -- INSERT RECIPIENT EMAIL ADDRESS into database
     private function insertRecipient( $email = false ) {
 
