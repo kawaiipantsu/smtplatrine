@@ -22,7 +22,7 @@
         - [Features](#features)
         - [Why?](#why)
     - [☑️ Requirements](#-requirements)
-    - [🪄 How to install](#-how-to-install)
+    - [🪄 How to install](#%F0%9F%AA%84-how-to-install)
         - [Quick and dirty Debian 12](#quick-and-dirty-debian-12)
         - [Manual install](#manual-install)
     - [💡 How to run](#-how-to-run)
@@ -31,7 +31,7 @@
         - [Config file: logger.ini](#config-file-loggerini)
         - [Config file: meta.ini](#config-file-metaini)
         - [Config file: server.ini](#config-file-serverini)
-    - [🫶 META osint Integrations](#-meta-osint-integrations)
+    - [🫶 META osint Integrations](#%F0%9F%AB%B6-meta-osint-integrations)
         - [VirusTotal](#virustotal)
         - [AbuseIPDB](#abuseipdb)
         - [AlienVault OTX](#alienvault-otx)
@@ -238,6 +238,8 @@ Should be straight forward here is an detailed overview of each config file with
 |-|server_protection|true|(bool)|Enable ACL protection (blacklisting)?
 |-|server_idle_timeout|60|(int)|Not implemented (kick idle clients)
 |-|server_spawn_clients_as_non_privileged|false|(bool)|Spawn client threads as other user/group?
+|-|server_enryption|false|(bool)|Not implemented (Encryption support)
+|-|server_cert_pem|"server.pem"|(string)|Not implemented (PEM Certificate file)
 |**non_privileged**|non_privileged_user|"nobody"|(string)|Spawn as - user
 |-|non_privileged_group|"nogroup"|(string)|Spawn as - group
 |**protection**|protection_max_connections|100|(int)|Max concurrent connections (soft kick))
@@ -382,4 +384,8 @@ So PLEASE refer to the [💣 Security concerns and safety issues!](#-security-co
 
 ## 📑 References / Links to external sites
 
-- RFC-5321: https://datatracker.ietf.org/doc/html/rfc5321
+- **[Simple Mail Transfer Protocol (RFC 5321)](https://datatracker.ietf.org/doc/html/rfc5321)**
+- **[Message Submission for Mail (RFC 4409)](https://datatracker.ietf.org/doc/html/rfc4409)**
+- **[SMTP Service Extensions for Transmission of Large and Binary MIME Messages (RFC 3030)](https://datatracker.ietf.org/doc/html/rfc3030)**
+- **[Internet Message Format (RFC 5322)](https://datatracker.ietf.org/doc/html/rfc5322)**
+- **[Multipurpose Internet Mail Extensions (MIME) Part One: Format of Internet Message Bodies (RFC 2045)](https://datatracker.ietf.org/doc/html/rfc2045)**

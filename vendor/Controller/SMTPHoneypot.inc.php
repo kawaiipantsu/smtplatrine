@@ -536,8 +536,6 @@ class SMTPHoneypot {
                         
                         // Explode input to get the base64 encoded string thta will be the 2 argument
                         $authData = explode(" ",$input);
-                        var_dump($authData);
-                        echo "AUTH DATA Count: ".count($authData)."\n";
                         if ( count($authData) > 2 ) {
                             $authData = trim($authData[2]);
                             // Decode base64 string

@@ -455,7 +455,10 @@ class connectionHandler {
 
                 $this->logger->logDebugMessage('['.$client->getPeerAddress().'] Storing email meta data in database');
                 
-                // Special switch case to catch multimap of useragent key name in headers
+                $xmailer = array_key_exists('x-mailer',$result['headers']) ? $result['headers']['x-mailer'] : '';
+
+                // Special switch case to consolidate wierd user agent / idendifyer headers
+                // into one single useragent field we can also utilize xmailer if needed
                 $useragent = '';
                 if ( array_key_exists('user-agent',$result['headers']) ) {
                     $useragent = $result['headers']['user-agent'];
@@ -465,6 +468,11 @@ class connectionHandler {
                     $useragent = $result['headers']['useragent'];
                 } else if ( array_key_exists('x-useragent',$result['headers']) ) {
                     $useragent = $result['headers']['x-useragent'];
+                }
+
+                // Now round two to catch more, i just like that this info is present in the main emails table
+                if ( $xmailer == "" ) {
+                    if ( array_key_exists('x-library',$result['headers']) ) $xmailer = $result['headers']['x-library'];
                 }
 
                 // Prepare the fields array
@@ -483,7 +491,8 @@ class connectionHandler {
                     'emails_header_organization'              => array_key_exists('organization',$result['headers']) ? $result['headers']['organization'] : '',
                     'emails_header_subject'                   => array_key_exists('subject',$result['headers']) ? $result['headers']['subject'] : '',
                     'emails_header_message_id'                => array_key_exists('message-id',$result['headers']) ? $result['headers']['message-id'] : '',
-                    'emails_header_xmailer'                   => array_key_exists('x-mailer',$result['headers']) ? $result['headers']['x-mailer'] : '',
+                    'emails_header_date'                      => array_key_exists('date',$result['headers']) ? $result['headers']['date'] : 'NOW()',	
+                    'emails_header_xmailer'                   => $xmailer,
                     'emails_header_useragent'                 => $useragent,
                     'emails_header_content_type'              => array_key_exists('content-type',$result['headers']) ? $result['headers']['content-type'] : '',
                     'emails_header_content_transfer_encoding' => array_key_exists('content-transfer-encoding',$result['headers']) ? $result['headers']['content-transfer-encoding'] : '',

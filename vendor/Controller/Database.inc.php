@@ -363,8 +363,13 @@ class Database {
 
     }
 
+    // Update internal stats table
+    public function updateStats( $table = false, $value = 1 ) {
+        // Nothing yet, just preparing
+    }
+
     // -- Save credentials
-    public function saveCredentials( $username = false, $password = false, $type = "NONE" ) {
+    public function saveCredentials( $username = '', $password = '', $type = "NONE" ) {
         // Establish a connection to the database
         $this->dbMysqlConnect();
 
@@ -383,6 +388,14 @@ class Database {
                 break;
         }
 
+        // Build an array of credentials
+        $credentials = array(
+            'username'  => base64_encode($username),
+            'password'  => base64_encode($password),
+            'mechanism' => $enumType
+        );
+        $serialized = serialize($credentials);
+
         // Quick fix for some clients sending username and password in different charset
         // This will replace unknown chars with '?' and make the credential unusable but hey we don't crash!
         $username = mb_convert_encoding($username, 'UTF-8', 'UTF-8');
@@ -390,10 +403,11 @@ class Database {
 
         if ( $this->dbConnected && $username && $password && $type ) {
             // Prepare the query
-            $query = "INSERT INTO honeypot_credentials (credentials_username,credentials_password,credentials_type) VALUES (";
+            $query = "INSERT INTO honeypot_credentials (credentials_username,credentials_password,credentials_type,credentials_serialized_original) VALUES (";
             $query .= "'".mysqli_real_escape_string($this->db,$username)."',";
             $query .= "'".mysqli_real_escape_string($this->db,$password)."',";
-            $query .= "'".mysqli_real_escape_string($this->db,$enumType)."'";
+            $query .= "'".mysqli_real_escape_string($this->db,$enumType)."',";
+            $query .= "'".mysqli_real_escape_string($this->db,$serialized)."'";
             $query .= ")";
 
             // Do the query
@@ -590,7 +604,10 @@ class Database {
             // Do the query (INSERT so it will return the ID of the row if it's a new one)
             $_notused = $this->dbMysqlRawQuery($query,false,false); // Query, No return sql resource, No logging
 
+            // We saw a client, so we should update the stats
+            $this->updateStats('stats_total_clients');
         }
+  
     }
 
     // -- INSERT ATTACHMENT
@@ -705,6 +722,10 @@ class Database {
                     case 'emails_attachments':
                         $fields[$key] = $value;
                         break;
+                    case 'emails_header_date':
+                        if ( $value == "NOW()") $fields[$key] = "current_timestamp()";
+                        else $fields[$key] = date('Y-m-d H:i:s',strtotime($value));
+                        break;
                     default:
                         $fields[$key] = trim($value);
                         break;
@@ -735,7 +756,12 @@ class Database {
                     } elseif ( $value['type'] === 'float' ) {
                         $query .= floatval($value['value']);
                     } else {
-                        $query .= "'".$value['value']."'";
+                        // Check if native mysql commands, should not be quoted
+                        if ( $value['value'] == "current_timestamp()" ) {
+                            $query .= $value['value'];
+                        } else {
+                            $query .= "'".$value['value']."'";
+                        }
                     }
                     $query .= ",";
                 }

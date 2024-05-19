@@ -32,8 +32,9 @@ Click any file to go to it directly.
 |------:|:------|
 | [.multitailrc](.multitailrc) | This is a file for MultiTail with smtplatrine color scheme :)
 | [apache2_vhost.conf](apache2_vhost.conf) | Quick template for creating vhost in Apache2 to smtplatrine
-|[database_test_import.sh](database_test_import.sh) | Quick script to test sql import or to see how it's done
-|[generate_www_password.php](generate_www_password.php)| Script to generate bcrypt hash string for admin user or to restore a password
+| [create_selfsigned_cert.php](create_selfsigned_cert.php) | Create a packed PEM certificate file
+| [database_test_import.sh](database_test_import.sh) | Quick script to test sql import or to see how it's done
+| [generate_www_password.php](generate_www_password.php)| Script to generate bcrypt hash string for admin user or to restore a password
 | [maxmind_geo_test.php](maxmind_geo_test.php) | Quick file to test if your Maxmind setup works
 | [monitor_git_graph.sh](monitor_git_graph.sh) | Script to display GIT Graph visualizing your work while working! |
 | [monitor_listner.sh](monitor_listner.sh) | Script to help you debug networking if the server/clients work |
