@@ -82,6 +82,7 @@ I have tied to make this a very feature rich smtp honeypot - Or at least that's 
 - Collecting Body
   - TEXT
   - HTML
+- Collecting "AUTH" credentials
 - Collecting client connection info
   - IP address, Communications ports
   - Reverse DNS
