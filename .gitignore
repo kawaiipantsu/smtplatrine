@@ -7,6 +7,10 @@ logs/*.log
 # Attachments
 attachments/*
 !attachments/README.md
+certs/*.pem
+certs/*.key
+certs/*.crt
+certs/*.csr
 
 ##### Windows
 # Windows thumbnail cache files
