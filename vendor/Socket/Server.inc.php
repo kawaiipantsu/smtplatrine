@@ -18,9 +18,13 @@ class Server {
 	private $socketRecvTimeout = 60;
 	private $socketSendTimeout = 60;
 
+	private $clientStreams = array();
+	private $isStream = false;
+	private $serverVars = array();
+    
 	private $enableEncryption = false;
-	private $encrytionCertCRT = false;
-	private $encrytionCertKEY = false;
+	private $encryptionCertCRT = false;
+	private $encryptionCertKEY = false;
 
 	private $acl_blacklist_ip = array();
 	private $acl_blacklist_geo = array();
@@ -51,15 +55,15 @@ class Server {
 		$this->socketRecvTimeout = array_key_exists('server_idle_timeout',$this->config['server']) ? intval($this->config['server']['server_idle_timeout']) : 60;
 		$this->socketSendTimeout = array_key_exists('server_idle_timeout',$this->config['server']) ? intval($this->config['server']['server_idle_timeout']) : 60;
 
-		$this->enableEncryption = trim($this->config['server']['server_enryption']) == "1" ? true : false;
-		$this->encrytionCertCRT = array_key_exists('server_cert_crt',$this->config['server']) ? intval($this->config['server']['server_cert_crt']) : false;
-		$this->encrytionCertKEY = array_key_exists('server_cert_key',$this->config['server']) ? intval($this->config['server']['server_cert_key']) : false;
+		$this->enableEncryption = trim($this->config['server']['server_encryption']) == "1" ? true : false;
+		$this->encryptionCertCRT = array_key_exists('server_cert_crt',$this->config['server']) ? intval($this->config['server']['server_cert_crt']) : false;
+		$this->encryptionCertKEY = array_key_exists('server_cert_key',$this->config['server']) ? intval($this->config['server']['server_cert_key']) : false;
 
 		// Check if protection acl is enabled and then refresh acl lists
 		if ( array_key_exists('protection',$this->config) ) {
 
 			if (array_key_exists('protection_acl_blacklist_ip',$this->config['protection']) || array_key_exists('protection_acl_blacklist_geo',$this->config['protection']) ) {
-				$this->logger->logMessage('[server] Protection ACL enabled, refreshing appropriate local cached blacklists','NOTICE');
+				$this->logger->logMessage('[server] Protection ACL enabled, refreshing appropriate local cached blacklists');
 			}
 
 			if ( array_key_exists('protection_acl_blacklist_ip',$this->config['protection']) ) {
@@ -92,7 +96,12 @@ class Server {
 
 	// Destructor
 	public function __destruct() {
-		socket_close($this->server);
+		// If stream close it
+		if ( $this->isStream ) {
+			//stream_socket_shutdown($this->server, STREAM_SHUT_RDWR);
+		} else {
+			socket_shutdown($this->server, 2);
+		}
 	}
 
 	// Load config file from etc
@@ -109,44 +118,48 @@ class Server {
 	// Start the server
 	public function start() {
 		$this->logger->logDebugMessage('[server] Creating socket on ' . $this->address . ':' . $this->port);
-		$this->createSocket();
-		$this->bindSocket();
-		$this->encryptionPrepare();
-	}
-
-	// Prepare encryption
-	private function encryptionPrepare() {
-		if ( $this->enableEncryption ) {
-			/*if ( $this->encrytionCertCRT && $this->encrytionCertKEY ) {
-				$this->logger->logMessage('[server] Encryption enabled, using certificates: ' . $this->encrytionCertCRT . ' and ' . $this->encrytionCertKEY);
-				stream_context_set_option($server, ["ssl" => [
-					"local_cert" => $this->encrytionCertCRT,
-					"local_pk" => $this->encrytionCertKEY,
-				]]);
-			} else {
-				$this->logger->logErrorMessage('[server] Encryption enabled but no certificates set');
-			}*/
-		}
-
+		//$this->createSocket();
+		//$this->bindSocket();
+		$this->createStreamSocket();
 	}
 
 	// Listen for connections
 	public function listen() {
-		if ( socket_listen($this->server, 5) === false) {
-			throw new SocketException( 
-				SocketException::CANT_LISTEN, socket_strerror(socket_last_error( $this->server ) ) 
-			);
+		// IF not resource
+		if ( !is_resource($this->server) ) {
+			if ( socket_listen($this->server, 5) === false) {
+				throw new SocketException( 
+					SocketException::CANT_LISTEN, socket_strerror(socket_last_error( $this->server ) ) 
+				);
+			}
 		}
-		
+
 		$this->listenLoop = true;
 		$this->beforeServerLoop();
 		$this->serverLoop();
-		socket_close( $this->server );
+
+		if ( $this->isStream ) {
+			//stream_socket_shutdown($this->server, STREAM_SHUT_RDWR);
+			fclose($this->server);
+		} else {
+			socket_close($this->server);
+		}
 	}
 
 	// Before server loop
 	protected function beforeServerLoop() {
 		$this->logger->logMessage('[server] Listening on ' . $this->address . ':' . $this->port . ' ...');
+		// Let's build the server vars array so clients can hae some info about the server
+		$this->serverVars = array(
+			'address' => $this->address,
+			'port' => $this->port,
+			'pid' => $this->serverPid,
+			'clients' => $this->maxClients,
+			'geoip' => $this->meta->isGeoIPavailable() ? 'yes' : 'no',
+			'blacklist_ip' => count($this->acl_blacklist_ip),
+			'blacklist_geo' => count($this->acl_blacklist_geo),
+			'isStream' => $this->isStream ? 'yes' : 'no'
+		);
 	}
 
 	// Set connection handler
@@ -155,44 +168,131 @@ class Server {
 		$this->logger->logDebugMessage("[server] Connection handler set to: " . $handler);
 	}
 
+	// Remove clientStream
+	public function removeClientStream( $key ) {
+		if ( array_key_exists($key,$this->clientStreams) ) {
+			fclose($this->clientStreams[$key]);
+			unset($this->clientStreams[$key]);
+		}
+	}
+
+	// public kill children properly
+	public function killChildren() {
+		foreach ( $this->childProcesses as $pid => $clientStream ) {
+			$this->logger->logMessage("[server] >>> Forcing connection '".$clientStream->getPeerInfo()."' to close","WARNING");
+			$clientStream->killDisconnect();
+			unset($this->childProcesses[$pid]);
+		}
+	}
+
 	// Server loop
 	protected function serverLoop() {
 
 		// Activate non-blocking mode
 		//socket_set_nonblock( $this->server );
-
+		stream_set_blocking($this->server, 0);
 		while( $this->listenLoop ) {
-			
-			/*
-			if ( ( $client = @socket_accept( $this->server ) ) === false ) {
-				throw new SocketException (
-					SocketException::CANT_ACCEPT, socket_strerror(socket_last_error( $this->server ) ) 
-				);
-				continue;
-			}
-			*/
-			
 
-			// check if pids exits
-			foreach( $this->childProcesses as $key => $pid ) {
-				$pidStatus = pcntl_waitpid( $pid, $status, WNOHANG );
-				if ( $pidStatus == -1 || $pidStatus > 0 ) {
-					unset( $this->childProcesses[$key] );
+			// Keep an eye on idlers! If found, disconnect them
+			foreach ( $this->childProcesses as $pid => $clientStream ) {
+				if ( $clientStream->isIdle() ) {
+					$clientStream->idleDisconnect();
+					unset($this->childProcesses[$pid]);
 				}
 			}
 
-			$this->acceptConnection();
+			// Children clean up - Zombies, hanging, dead ... 
+			foreach( $this->childProcesses as $pid => $object ) {
+				$pidStatus = pcntl_waitpid( $pid, $status, WNOHANG );
+				if ( $pidStatus == -1 || $pidStatus > 0 ) {
+					unset( $this->childProcesses[$pid] );
+				}
+			}
+
+			if ( $this->isStream === false ) $this->acceptConnection();
+			else $this->acceptConnectionStream();
 
 			// As we are in a loop and now in non-blocking mode we need to sleep
 			// or we will consume all CPU! Or at least a lot of it :)
 
-			usleep(100000); // Sleep for 100ms
+			usleep(10000);	// 10ms
 
 		}
 	}
 
+	// Accept connection (stream)
+	private function acceptConnectionStream() {
+		$read = array($this->server);
+		$write = null;
+		$except = null;
+		$changed = stream_select($read, $write, $except, 0, 0);
+		if(!$changed) {
+			return false;
+		}
+		$handle = stream_socket_accept($this->server);
+		if(!$handle) {
+			return false;
+		}
+
+		stream_set_timeout( $handle, $this->socketRecvTimeout);
+
+		$socketClient = new SocketClient( $handle );
+
+		// Check if IP is blacklisted
+		$checkIP = trim($this->config['protection']['protection_acl_blacklist_ip']) == "1" ? true : false;
+		if ( $checkIP ) {
+			$blocked = $this->aclCheckIfBlacklisted('ip',$socketClient->getPeerAddress());
+			// If not allowed, close connection
+			if ( $blocked ) {
+				$this->logger->logMessage("[".$socketClient->getPeerAddress()."] Closed connection (Rejected: Blacklisted IP)");
+				$socketClient->close();
+				return false;
+			}
+		}
+
+		// Check if Geo is blacklisted
+		$checkGeo = trim($this->config['protection']['protection_acl_blacklist_geo']) == "1" ? true : false;
+		if ( $checkGeo ) {
+			if ( $this->meta->isGeoIPavailable() ) {
+				// Get Geo code
+				$geoCode = $this->meta->getGeoIPMain($socketClient->getPeerAddress());
+				$countryCode = false;
+				if ( is_array($geoCode) ) {
+					$countryCode = array_key_exists('country',$geoCode) ? $geoCode['country']['iso_code'] : false;
+				}
+				if ( $countryCode && $this->aclCheckIfBlacklisted('geo',$countryCode) ) {
+					$this->logger->logMessage("[".$socketClient->getPeerAddress()."] Closed connection (Rejected: Blacklisted GEO)");
+					$socketClient->close();
+					return false;
+				}
+			} else {
+				// log about it
+				$this->logger->logErrorMessage('[server] GeoIP not available, can\'t check GEO blacklist');
+			}
+			
+		}
+
+		if ( is_array( $this->connectionHandler ) ) {
+			$object = $this->connectionHandler[0];
+			$method = $this->connectionHandler[1];
+			$object->$method( $socketClient );
+		} else {
+			$function = $this->connectionHandler;
+			$spawnClient = new $function( $socketClient, $this->childProcesses );
+			$this->childProcesses[$spawnClient->getPID()] = $spawnClient;
+
+			// If max clients reached print different log message
+			if ( count($this->childProcesses) > $this->maxClients ) {
+				$this->logger->logMessage('[server] Max clients reached, claiming to be busy :)', 'WARNING');
+			} else {
+				$this->logger->logMessage('[server] Clients connected ' . count($this->childProcesses). ' of ' . $this->maxClients);
+			}
+			$this->logger->logMessage('[server] Spawned client on pid '.$spawnClient->getPID());
+		}
+    }
+
 	// Accept connection
-	function acceptConnection() {
+	private function acceptConnection() {
         $read_socket = array($this->server);
         $write = null;
         $except = null;
@@ -261,6 +361,13 @@ class Server {
 		}
     }
 
+	// Get child pids
+	public function getChildPIDs() {
+		// PIDs are the keys
+		$array = $this->childProcesses;
+		return array_keys($array);
+	}
+
 	// Remove pid from childProcesses
 	public function removeChildPID( $pid ) {
 		if ( in_array($pid,$this->childProcesses) ) {
@@ -308,19 +415,19 @@ class Server {
 			switch( $blacklist ) {
 				case "ip":
 					$this->acl_blacklist_ip = array();
-					$this->logger->logMessage('[server] Refreshing ACL IP blacklist from database', 'NOTICE');
+					$this->logger->logMessage('[server] Refreshing ACL IP blacklist from database');
 					$this->acl_blacklist_ip = $this->getBlacklist('ip');
 					break;
 				case "geo":
 					$this->acl_blacklist_geo = array();
-					$this->logger->logMessage('[server] Refreshing ACL Geo blacklist from database', 'NOTICE');
+					$this->logger->logMessage('[server] Refreshing ACL Geo blacklist from database');
 					$this->acl_blacklist_geo = $this->getBlacklist('geo');
 					break;
 				case "all":
 					$this->acl_blacklist_geo = array();
 					$this->acl_blacklist_ip = array();
-					$this->logger->logMessage('[server] Refreshing ACL Geo blacklist from database', 'NOTICE');
-					$this->logger->logMessage('[server] Refreshing ACL IP blacklist from database', 'NOTICE');
+					$this->logger->logMessage('[server] Refreshing ACL Geo blacklist from database');
+					$this->logger->logMessage('[server] Refreshing ACL IP blacklist from database');
 					$this->acl_blacklist_geo = $this->getBlacklist('geo');
 					$this->acl_blacklist_ip = $this->getBlacklist('ip');
 					break;
@@ -342,7 +449,7 @@ class Server {
 			case "ip":
 				$query = "SELECT ip_addr FROM acl_blacklist_ip";
 				$result = $this->db->dbMysqlRawQuery($query, true, false); // Query, No return sql resource, No logging
-				if ( mysqli_num_rows($result) > 0 ) {
+				if ( $result && mysqli_num_rows($result) > 0 ) {
 					while( $row = mysqli_fetch_assoc($result) ) {
 						$blacklistArray[] = $row['ip_addr'];
 					}
@@ -352,7 +459,7 @@ class Server {
 			case "geo":
 				$query = "SELECT geo_code FROM acl_blacklist_geo";
 				$result = $this->db->dbMysqlRawQuery($query, true, false); // Query, No return sql resource, No logging
-				if ( mysqli_num_rows($result) > 0 ) {
+				if ( $result && mysqli_num_rows($result) > 0 ) {
 					while( $row = mysqli_fetch_assoc($result) ) {
 						$blacklistArray[] = strtoupper(trim($row['geo_code']));
 					}
@@ -406,7 +513,41 @@ class Server {
 		}
 
 	}
+	
+	// Create a stream socket
+	private function createStreamSocket() {
+		//$context = stream_context_create();
+		$opts = array(
+			'socket' => array(
+				'backlog' => 5,
+				'so_reuseport' => true,
+			),
+			'ssl' => array(
+				'local_cert' => "/var/www/projects/smtplatrine/etc/certs/smtp.srv25.barebone.com.pem",
+				'local_pk' => "/var/www/projects/smtplatrine/etc/certs/smtp.srv25.barebone.com.key",
+				'disable_compression' => true,
+				'verify_peer' => false,
+				'verify_peer_name' => false,
+				'allow_self_signed' => true
+			)
+		);
+		
 
+		$socket = stream_socket_server('tcp://'.$this->address.':'.$this->port, $errno, $errstr, STREAM_SERVER_BIND|STREAM_SERVER_LISTEN);
+		if ( !$socket ) {
+			throw new SocketException( 
+				SocketException::CANT_CREATE_SOCKET, $errstr
+			);
+		}
+
+		stream_context_set_option($socket, $opts);
+
+		stream_set_timeout( $socket, $this->socketRecvTimeout);
+
+		$this->server = $socket;
+		$this->isStream = true;
+		$this->logger->logDebugMessage('[server] Stream socket created, ready for binding');
+	}
 
 	// Create the socket
 	private function createSocket() {
@@ -429,26 +570,71 @@ class Server {
 	}
 
 	// Create SSL/TLS Cert
-	public function createSSLCert($pem_file, $pem_passphrase, $pem_dn) {
-		//create ssl cert for this scripts life.
-		
-		 //Create private key
-		 $privkey = openssl_pkey_new();
-		
-		 //Create and sign CSR
-		 $cert    = openssl_csr_new($pem_dn, $privkey);
-		 $cert    = openssl_csr_sign($cert, null, $privkey, 365);
-		
-		 //Generate PEM file
-		 $pem = array();
-		 openssl_x509_export($cert, $pem[0]);
-		 openssl_pkey_export($privkey, $pem[1], $pem_passphrase);
-		 $pem = implode($pem);
-		
-		 //Save PEM file
-		 file_put_contents($pem_file, $pem);
-		 chmod($pem_file, 0600);
+	public function createSSLCert() {
+
+		// Get SMTP domain name from config or set default
+		$domainName = array_key_exists('smtp_domain',$this->config['smtp']) ? $this->config['smtp']['smtp_domain'] : 'smtp.srv25.barebone.com';
+
+		// Check if the certificate already exists
+		$certFile = __DIR__ . '/../../etc/certs/' . $domainName . '.pem';
+		if ( !file_exists($certFile) ) {
+
+			$dn = array(
+				"countryName" => "US",
+				"stateOrProvinceName" => "Some State",
+				"localityName" => "Some City",
+				"organizationName" => "SMTPLatrine Inc.",
+				"organizationalUnitName" => "SOC Team",
+				"commonName" => $domainName
+			);
+
+			$privKey = openssl_pkey_new(array(
+				"private_key_bits" => 2048,
+				"private_key_type" => OPENSSL_KEYTYPE_RSA,
+			));
+			
+			// Generate a certificate signing request
+			$csr = openssl_csr_new($dn, $privKey, array('digest_alg' => 'sha256'));
+
+			// Generate a self-signed cert, valid for 365 days
+			$x509 = openssl_csr_sign($csr, null, $privKey, $days=365, array('digest_alg' => 'sha256'));
+
+			// PEM file format
+			$pem = array();
+			$csrout = '';
+
+			// Save your private key, CSR and self-signed cert for later use
+			openssl_csr_export($csr, $csrout);
+			openssl_x509_export($x509, $pem[0]);
+			openssl_pkey_export($privKey, $pem[1]);
+			$pemChain = implode($pem);
+
+			// Save alle certificates individually under etc/certs/
+			$pem_file = __DIR__ . '/../../etc/certs/' . $domainName . '.pem';
+			$csr_file = __DIR__ . '/../../etc/certs/' . $domainName . '.csr';
+			$key_file = __DIR__ . '/../../etc/certs/' . $domainName . '.key';
+			$crt_file = __DIR__ . '/../../etc/certs/' . $domainName . '.crt';
+
+			// Save PEM file
+			file_put_contents($pem_file, $pemChain);
+			chmod($pem_file, 0600);
+
+			// Save CSR file
+			//file_put_contents($csr_file, $csrout);
+			//chmod($csr_file, 0600);
+
+			// Save KEY file
+			file_put_contents($key_file, $pem[1]);
+			chmod($key_file, 0600);
+
+			// Save CRT file
+			//file_put_contents($crt_file, $pem[0]);
+			//chmod($crt_file, 0600);
+
+			// Log about it
+			$this->logger->logMessage('[server] Created SSL/TLS certificate for domain: ' . $domainName,'NOTICE');
 		}
+	}
 
 	// Bind the socket
 	private function bindSocket() {

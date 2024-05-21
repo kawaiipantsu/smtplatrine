@@ -91,10 +91,32 @@ class connectionHandler {
         // Nothing to do
     }
 
+    // Is idle
+    public function isIdle() {
+        return $this->socket->isIdle();
+    }
+
+    public function idleDisconnect() {
+        $this->socket->send($this->smtp->closeConnectionIdle());
+        $this->socket->close();
+        $this->logger->logMessage("[".$this->socket->getPeerAddress()."] Disconnected");
+    }
+
+    public function killDisconnect() {
+        $this->socket->send($this->smtp->closeConnectionKill());
+        $this->socket->close();
+        $this->logger->logMessage("[".$this->socket->getPeerAddress()."] Disconnected");
+    }
+
     // Load config file from etc
     private function loadConfig() {
         $config = parse_ini_file(__DIR__ . '/../../etc/server.ini',true);
         return $config;
+    }
+
+    // Function to return peer address and port
+    public function getPeerInfo() {
+        return $this->socket->getPeerAddress().":".$this->socket->getPeerPort();
     }
 
     // Get PID of child process
@@ -110,7 +132,7 @@ class connectionHandler {
         $client = $this->socket;
         $read = '';
 
-        $this->logger->logMessage('[client] Client connected '.$client->getPeerAddress().':'.$client->getPeerPort().'->'.$client->getAddress().':'.$client->getPort());
+        $this->logger->logMessage('[client] Client connected '.$client->getPeerAddress().':'.$client->getPeerPort().'->'.$client->getAddress().':'.$client->getPort(),'NOTICE');
 
         // If we have more than 2 processes, close connection with log message
         if ( count($this->otherProcesses) >= $this->maxClients ) {
@@ -152,6 +174,9 @@ class connectionHandler {
             //if ( empty($read) === false ) {
             if ( $read != '' ) {
 
+                //var_dump($read);
+                //var_dump(bin2hex($read));
+
                 // THIS IS THE MAIN LOOP TO PROCESS INCOMING DATA
                 // As this is a SMTP Honeypot, we shift to a mixture of SMTP and DATA mode
                 // Also remember the SMTP protocol, even if we are "done" and receive a mail
@@ -176,7 +201,7 @@ class connectionHandler {
                         if ( preg_match('/^250 Ok: queued as /i',$dataStatus) ) {
 
                             // Log that things went successful
-                            $this->logger->logMessage("[".$client->getPeerAddress()."] Successfully queued mail for relaying");
+                            $this->logger->logMessage("[".$client->getPeerAddress()."] Successfully queued mail for relaying","NOTICE");
 
                             // Get the complete/finished email in a raw known EML data format
                             // EML = Electronic Mail Message
@@ -270,16 +295,28 @@ class connectionHandler {
                                         return false;
                                 }
 
+                                // Special rule to handle if we saw any authentication action :)
+                                if ( !is_array($response) && preg_match('/^235 2.7.0 Authentication succeeded/i',$response) ) {
+                                    // Log what is going to happen
+                                    $this->logger->logMessage("[".$client->getPeerAddress()."] Client sent us credentials, saving them");
+                                    $creds = $this->smtp->getAuthCredentials();
+                                    $this->db->saveCredentials($creds['username'],$creds['password'],$creds['mechanism']);
+                                }
+
                                 // Handle STARTTLS command
                                 // We have this very nice public variable to check what ever the last
                                 // SMTP command we processed was, so we can act on it
                                 if ( $this->smtp->smtpLastCommand == 'STARTTLS' ) {
                                     // Log what is going to happen
-                                    $this->logger->logMessage("[".$client->getPeerAddress()."] Client sent STARTTLS command, not supported!",'WARNING');
+                                    //$this->logger->logMessage("[".$client->getPeerAddress()."] Client sent STARTTLS command, not supported!",'WARNING');
 
                                     // But this would be the place that we where to initiate the TLS connection / ie. start the encryption
                                     // By calling functions that would manipulate the Client Socket !
-                                    // $client->enableEncryption();
+                                    $this->logger->logMessage("[".$client->getPeerAddress()."] Client sent STARTTLS command, enabling encryption");
+                                    $client->enableEncryption();
+
+                                    // Clear commands, as the session is now fresh!
+                                    if ( $client->isEncrypted() ) $this->smtp->clearCommandSequences();
 
                                 }
 
@@ -353,18 +390,15 @@ class connectionHandler {
                             // SMTP command we processed was, so we can act on it
                             if ( $this->smtp->smtpLastCommand == 'STARTTLS' ) {
                                 // Log what is going to happen
-                                $this->logger->logMessage("[".$client->getPeerAddress()."] Client sent STARTTLS command, not supported!",'WARNING');
+                                //$this->logger->logMessage("[".$client->getPeerAddress()."] Client sent STARTTLS command, not supported!",'WARNING');
 
                                 // But this would be the place that we where to initiate the TLS connection / ie. start the encryption
                                 // By calling functions that would manipulate the Client Socket !
-                                // $client->enableEncryption();
+                                $this->logger->logMessage("[".$client->getPeerAddress()."] Client sent STARTTLS command, enabling encryption",'NOTICE');
+                                $client->enableEncryption();
 
-                                // Handle end of connection
-                                $this->handleEnd($client);
-        
-                                // End the connectionHandler handle() function
-                                $this->logger->logMessage("[".$client->getPeerAddress()."] Closed connection (No STARTTLS)");
-                                return false;
+                                // Clear commands, as the session is now fresh!
+                                if ( $client->isEncrypted() ) $this->smtp->clearCommandSequences();
 
                             }
 

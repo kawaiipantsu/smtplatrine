@@ -94,10 +94,15 @@ class Meta {
     // Maxmind GEO IP (main) Lookup
     public function getGeoIPMain($ip) {
         if ( $this->metaAvailable['geoip'] ) {
-            $reader = new MaxMindReader($this->metaAvailable['geoip']['main']);
-            $geoip = $reader->get($ip);
-            $reader->close();
-            return $geoip;
+            // Validate if IP
+            if ( !filter_var($ip, FILTER_VALIDATE_IP) ) {
+                return false;
+            } else {
+                $reader = new MaxMindReader($this->metaAvailable['geoip']['main']);
+                $geoip = $reader->get($ip);
+                $reader->close();
+                return $geoip;
+            }
         } else {
             return false;
         }
@@ -106,10 +111,15 @@ class Meta {
     // Maxmind GEO IP (ASN) Lookup
     public function getGeoIPASN($ip) {
         if ( $this->metaAvailable['geoip'] ) {
-            $reader = new MaxMindReader($this->metaAvailable['geoip']['asn']);
-            $geoip = $reader->get($ip);
-            $reader->close();
-            return $geoip;
+            // Validate if IP
+            if ( !filter_var($ip, FILTER_VALIDATE_IP) ) {
+                return false;
+            } else {
+                $reader = new MaxMindReader($this->metaAvailable['geoip']['asn']);
+                $geoip = $reader->get($ip);
+                $reader->close();
+                return $geoip;
+            }
         } else {
             return false;
         }

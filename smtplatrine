@@ -54,6 +54,9 @@ $mainUserInfo = posix_getpwuid(posix_geteuid());
 // Setup logging for the main application
 $logger = new \Controller\Logger(basename(__FILE__,'.php'),__NAMESPACE__);
 
+// As soon as the logger is up, we can say hello in the log!
+$logger->logMessage(">>> SMTPLATRINE - A custom SMTP-Honeypot written in PHP :)","NOTICE");
+
 // Setup server handing
 $socketServer = new \Socket\Server;
 
@@ -95,9 +98,6 @@ pcntl_signal(SIGCONT, [$signalHandler, 'doNOTHING']);
 // Enable logging for this script (not underlying classes)
 $logger->enableDisplay();
 $logger->enableReporting(E_ALL);
-
-// Send application STARTED log
-$logger->logMessage(">>> SMTPLATRINE - A custom SMTP-Honeypot written in PHP :)");
 
 // Before we start, let's make some sanity checks that we nee to do as "root"
 // Check if we want to run clients in non-privileged mode and if so do we have the right permissions
@@ -145,6 +145,9 @@ if ($non_privileged) {
     }
 }
 
+// Make sure we have certificate if ready to use
+$socketServer->createSSLCert();
+
 // Setup the server
 $socketServer->setConnectionHandler('\Socket\ConnectionHandler');
 
@@ -156,7 +159,7 @@ $socketServer->listen();
 // But in most cases we will not get here as we exit out of the loop
 // inside different signal handlers before we get here
 
-$logger->logMessage(">>> SMTPLATRINE - Goodbye!");
+$logger->logMessage(">>> SMTPLATRINE - Goodbye!","NOTICE");
 
 exit(0);
 

@@ -80,6 +80,13 @@ class SMTPHoneypot {
         return $this->smtpDATAmode;
     }
 
+    // Clear all command sequences and last command
+    public function clearCommandSequences() {
+        $this->smtpCommandsSequence = array();
+        $this->smtpCommands = array();
+        $this->smtpLastCommand = false;
+    }
+
     // Clear last command
     private function clearLastCommand() {
         $this->smtpLastCommand = false;
@@ -437,6 +444,9 @@ class SMTPHoneypot {
     // Parse SMTP Command
     public function parseCommand($data) {
 
+
+        $this->logger->logDebugMessage("[smtp] Received RAW (HEX): ".bin2hex($data));
+
         // First things first, since we are called that means we are potentially recieving a new command
         // So we clear the last command
         $this->clearLastCommand();
@@ -467,6 +477,64 @@ class SMTPHoneypot {
 
         // Uppercase command
         $command = strtoupper(trim($command));
+
+        // We are in AUTH mode, so we need to handle the login process
+        if ( $this->smtpAUTHmode ) {
+            // We can't rely on the command variable, so we need to get the raw data from input
+            // We can use input and not data as it's okay it's been trimmed. The content should be base64 encoded.
+            $authData = $input;
+
+            // Check if we are in PLAIN process
+            if ( $this->smtpAUTHmode == "PLAIN" ) {
+                // PLain just awaits the combined username and password base64 encoded
+                $creds = preg_replace('/\R/', '', base64_decode($authData));
+
+                // Check if we have a space in the creds, if so we need to split it
+                if ( strpos($creds,"\0") !== false ) {
+                    $creds = explode("\0",$creds);
+                    $user = trim($creds[1]);
+                    $pass = $creds[2];
+                } else {
+                    $user = '';
+                    $pass = $creds;
+                }
+
+                $authEntry = array(
+                    'mechanism' => 'PLAIN',
+                    'username' => $user,
+                    'password' => $pass
+                );
+                $this->authCreds = $authEntry;
+                // Now stop smtp auth mode
+                $this->smtpAUTHmode = false;
+                $output = $this->reply(false,235);
+            }
+
+            // We are in LOGIN process
+            if ( $this->smtpAUTHmode == "LOGIN" ) {
+                // First we need to get the username
+                if ( $this->authLOGINuser === false ) {
+                    $this->authLOGINuser = preg_replace('/\R/', '', base64_decode($authData));
+                    $output = $this->reply(" UGFzc3dvcmQ6",334); // Send back Password: prompt (base64 encoded for language support)
+                } else if ( $this->authLOGINuser && $this->authLOGINpass === false ) {
+                    $this->authLOGINpass = preg_replace('/\R/', '', base64_decode($authData));
+                    $output = $this->reply(false,235);
+                    $this->smtpAUTHmode = false;
+                    $authEntry = array(
+                        'mechanism' => 'LOGIN',
+                        'username' => $this->authLOGINuser,
+                        'password' => $this->authLOGINpass
+                    );
+                    $this->authCreds = $authEntry;
+                    $this->authLOGINuser = false;
+                    $this->authLOGINpass = false;
+                }
+                
+            }
+
+            // As we want to talk again let's return now
+            return $output;
+        }
 
         // Validate command
         if ( !$this->validateCommand($command) ) {
@@ -576,9 +644,9 @@ class SMTPHoneypot {
                 break;
             case 'STARTTLS':
                 // STARTTLS IS NOT SUPPORTED YET
-                $output = $this->reply(" STARTTLS command used when not advertised",503);
-                //$output = $this->reply(" 2.0.0 Ready to start TLS",220);
-                //$this->weSecure = true;
+                //$output = $this->reply(" STARTTLS command used when not advertised",503);
+                $output = $this->reply(" 2.0.0 Ready to start TLS",220);
+                $this->weSecure = true;
                 break;
             case 'RSET':
                 $output = $this->reply(false,250);
@@ -599,65 +667,6 @@ class SMTPHoneypot {
 
         // Add command to smtp command array if known
         if ($command != "UNKNOWN" ) $this->addCommand($command);
-
-        // We are in AUTH mode, so we need to handle the login process
-        if ( $this->smtpAUTHmode ) {
-            // We can't rely on the command variable, so we need to get the raw data from input
-            // We can use input and not data as it's okay it's been trimmed. The content should be base64 encoded.
-            $authData = $input;
-
-            // Check if we are in PLAIN process
-            if ( $this->smtpAUTHmode == "PLAIN" ) {
-                // PLain just awaits the combined username and password base64 encoded
-                $creds = preg_replace('/\R/', '', base64_decode($authData));
-
-                // Check if we have a space in the creds, if so we need to split it
-                if ( strpos($creds,"\0") !== false ) {
-                    $creds = explode("\0",$creds);
-                    $user = trim($creds[1]);
-                    $pass = $creds[2];
-                } else {
-                    $user = '';
-                    $pass = $creds;
-                }
-
-                $authEntry = array(
-                    'mechanism' => 'PLAIN',
-                    'username' => $user,
-                    'password' => $pass
-                );
-                $this->authCreds = $authEntry;
-                // Now stop smtp auth mode
-                $this->smtpAUTHmode = false;
-                $output = $this->reply(false,235);
-            }
-
-            // We are in LOGIN process
-            if ( $this->smtpAUTHmode == "LOGIN" ) {
-                // First we need to get the username
-                if ( $this->authLOGINuser === false ) {
-                    $this->authLOGINuser = preg_replace('/\R/', '', base64_decode($authData));
-                    $output = $this->reply(" UGFzc3dvcmQ6",334); // Send back Password: prompt (base64 encoded for language support)
-                } else if ( $this->authLOGINuser && $this->authLOGINpass === false ) {
-                    $this->authLOGINpass = preg_replace('/\R/', '', base64_decode($authData));
-                    $output = $this->reply(false,235);
-                    $this->smtpAUTHmode = false;
-                    $authEntry = array(
-                        'mechanism' => 'LOGIN',
-                        'username' => $this->authLOGINuser,
-                        'password' => $this->authLOGINpass
-                    );
-                    $this->authCreds = $authEntry;
-                    $this->authLOGINuser = false;
-                    $this->authLOGINpass = false;
-                }
-                
-            }
-            
-            // As we want to talk again let's return now
-            return $output;
-        }
-
 
         // Check if we are SMTP compliant
         $compliance = trim($this->config['smtp']['smtp_compliant']) == "1" ? true : false;
@@ -711,6 +720,11 @@ class SMTPHoneypot {
     }
     public function closeConnectionIdleWhileInData() {
         return $this->reply(" 4.4.2 Error: timeout exceeded while in DATA",421);
+    }
+
+    // Close connection for kill
+    public function closeConnectionKill() {
+        return $this->reply(" 4.4.2 Error: server went away",421);
     }
 
     // function to handle closing connection to early

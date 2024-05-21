@@ -7,6 +7,7 @@ class Logger {
     public $lastError;
     private $config = false;
     private $logName = 'logger';
+    private $logLevel = 0;
     private $namespace = __NAMESPACE__;
     private $fullName = false;
     private $pidTitle = false;
@@ -54,6 +55,17 @@ class Logger {
             $this->isDebug = strtolower(trim($this->config['logger']['logger_debug'])) == "1" ? true : false;
         }
 
+        // Get our overall internal log level
+        // WE use PHP's constants for this: E_ALL, E_ERROR, E_WARNING, E_NOTICE is supported
+        $log_level = trim($this->config['logger']['logger_level']) ? trim($this->config['logger']['logger_level']) : "E_ALL";
+        $level_constants = explode('|', $log_level);
+        $level_constants_int = 0;
+        foreach ( $level_constants as $level_constant ) {
+            $level_constants_int = $level_constants_int | constant(trim($level_constant));
+        }
+        $this->logLevel = $level_constants_int;
+        $this->logDebugMessage("[logger] Internal log level set to: ".$log_level." (".$level_constants_int.")");
+
         // Log that logger is initialized
         $this->logDebugMessage('[logger] New logger initialized for '.$this->fullName);
 
@@ -91,14 +103,25 @@ class Logger {
     // Main log entry function that calls the appropriate log function based on the config
     public function logMessage($entry, $level='INFO') {
         if ( $this->loggerEnabled ) {
-            if ( strtolower(trim($this->config['logger']['logger_destination'])) == 'both' ) {
-                $this->logToFile($entry, $level);
-                $this->logToSyslog($entry, $level);
-            } else {
-                if ( strtolower(trim($this->config['logger']['logger_destination'])) == 'file' ) {
+            if ( 
+                $this->logLevel >= 32767 ||
+                $this->logLevel == 11 && preg_match("/(notice|warning|error)/i",$level) ||
+                $this->logLevel == 10 && preg_match("/(notice|warning)/i",$level) ||
+                $this->logLevel == 9 && preg_match("/(notice|error)/i",$level) ||
+                $this->logLevel == 8 && preg_match("/(notice)/i",$level) ||
+                $this->logLevel == 3 && preg_match("/(error|warning)/i",$level) ||
+                $this->logLevel == 2 && preg_match("/(warning)/i",$level) ||
+                $this->logLevel == 1 && preg_match("/(error)/i",$level)
+            ) {
+                if ( strtolower(trim($this->config['logger']['logger_destination'])) == 'both' ) {
                     $this->logToFile($entry, $level);
-                } else if ( strtolower(trim($this->config['logger']['logger_destination'])) == 'syslog' ) {
                     $this->logToSyslog($entry, $level);
+                } else {
+                    if ( strtolower(trim($this->config['logger']['logger_destination'])) == 'file' ) {
+                        $this->logToFile($entry, $level);
+                    } else if ( strtolower(trim($this->config['logger']['logger_destination'])) == 'syslog' ) {
+                        $this->logToSyslog($entry, $level);
+                    }
                 }
             }
         }

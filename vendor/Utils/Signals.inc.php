@@ -34,9 +34,9 @@ class Signals {
             $parent = $this->serverObject->serverPid;
         }
         if ( $parent == $pid ) {
-            $this->logger->logMessage('[server] >>> Caught SIGCHLD from child', 'WARNING');
+            $this->logger->logDEbugMessage('[server] >>> Caught SIGCHLD from child');
         } else {
-            $this->logger->logMessage('[client] >>> Caught SIGCHLD?', 'WARNING');
+            $this->logger->logDebugMessage('[client] >>> Caught SIGCHLD?');
         }
         return true;
     }
@@ -50,12 +50,18 @@ class Signals {
 
         if ( $this->serverObject ) {
             $parent = $this->serverObject->serverPid;
+            $childpids = $this->serverObject->getChildPIDs();
         }
         if ( $parent == $pid ) {
             $this->logger->logMessage("[server] >>> Posix SIGNAL received '".trim($this->signalToString($signo))."'","WARNING");
             $this->logger->logMessage('[server] Stopped listening for connections');
-            $this->logger->logMessage('[server] EXIT=0');
-            $this->logger->logMessage(">>> SMTPLATRINE - Goodbye!");
+            //foreach ( $childpids as $pid ) {
+            //    $this->logger->logMessage("[server] >>> Killing child process $pid","WARNING");
+            //    posix_kill($pid,SIGKILL);
+            //}
+            $this->serverObject->killChildren();
+            $this->logger->logDebugMessage('[server] EXIT=0');
+            $this->logger->logMessage(">>> SMTPLATRINE - Goodbye!","NOTICE");
             // Clean exit
             exit(0);
         } else {
@@ -75,12 +81,17 @@ class Signals {
 
         if ( $this->serverObject ) {
             $parent = $this->serverObject->serverPid;
+            $childpids = $this->serverObject->getChildPIDs();
         }
         if ( $parent == $pid ) {
-            $this->logger->logMessage("[server] >>> Posix SIGNAL received '".trim($this->signalToString($signo))."' - Goodbye","WARNING");
+            $this->logger->logMessage("[server] >>> Posix SIGNAL received '".trim($this->signalToString($signo))."' - Goodbye");
             $this->logger->logMessage('[server] Stopped listening for connections');
-            $this->logger->logMessage('[server] EXIT=0');
-            $this->logger->logMessage(">>> SMTPLATRINE - Goodbye!");
+            foreach ( $childpids as $pid ) {
+                $this->logger->logMessage("[server] >>> Killing child process: $pid");
+                posix_kill($pid,SIGKILL);
+            }
+            $this->logger->logDebugMessage('[server] EXIT=0');
+            $this->logger->logMessage(">>> SMTPLATRINE - Goodbye!","NOTICE");
             // Clean exit
             exit(0);
         } else {
@@ -105,11 +116,11 @@ class Signals {
         $this->logger->logMessage(">>> Posix SIGNAL 'HUP' received, smtplatrine is reloading server settings","NOTICE");
         // If we have a server object, reload the config
         if ( $this->serverObject ) {
-            $this->logger->logMessage(">>> [server] Reloaded config (server.ini)","NOTICE");
+            $this->logger->logMessage(">>> [server] Reloaded config (server.ini)");
             $this->serverObject->reloadConfig();      // Reload the config
-            $this->logger->logMessage(">>> [server] Reloaded ACL Blacklist entries (IP)","NOTICE");
+            $this->logger->logMessage(">>> [server] Reloaded ACL Blacklist entries (IP)");
             $this->serverObject->reloadACL('ip');     // Reload the IP ACL
-            $this->logger->logMessage(">>> [server] Reloaded ACL Blacklist entries (IP)","NOTICE");
+            $this->logger->logMessage(">>> [server] Rorce reload ACL Blacklist entries (GEO)");
             $this->serverObject->reloadACL('geo');    // Reload the GEO ACL
         } else {
             $this->logger->logMessage(">>> [server] Whoops, could not reload anything ... ","WARNING");

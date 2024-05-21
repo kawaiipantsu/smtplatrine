@@ -11,6 +11,10 @@ certs/*.pem
 certs/*.key
 certs/*.crt
 certs/*.csr
+etc/certs/*.pem
+etc/certs/*.key
+etc/certs/*.crt
+etc/certs/*.csr
 
 ##### Windows
 # Windows thumbnail cache files
