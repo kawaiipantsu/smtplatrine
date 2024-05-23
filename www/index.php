@@ -199,16 +199,25 @@ if ($_SESSION['loggedin']) {
             border-radius: 5px;
             padding: 15px;
             width: 800px;
+            text-align: center;
         }
 
         fieldset legend {
-            background: #292e32;
-            color: #fff;
-            padding: 10px;
-            font-size: 12pt;
+            border-width: 5px;
             border-radius: 5px;
-            box-shadow: 0 0 0 5px #26292c;
+            border-style: solid;
+            color: #bfbfbf;
+            border-image: linear-gradient(180deg, #1b1e20, #212529) 1;
+            background: rgb(27,30,32);
+            background: linear-gradient(180deg, rgba(27,30,32,1) 0%, rgba(38,42,47,1) 70%, rgba(33,37,41,1) 100%);
+            padding: 10px;
+            font-size: 14pt;
             margin-bottom: 30px;
+            margin-top: -30px;
+            display: block;
+            margin-left: 90px;
+            width: 600px;
+            text-align: center;
         }
         .parent {
             display: flex;
@@ -238,34 +247,42 @@ if ($_SESSION['loggedin']) {
             padding-left: 10px;
             border-radius: 5px;
             border: 1px solid #000;
+            background-color: #303639;
+            color: #fff;
             margin: 2px;
-            width: 400px;
+            width: 300px;
         }
         .form-submit-button:hover {
-            background: #016;
-            color: #fff;
-            border: 1px solid #eee;
+            text-align: center;
+            border-width: 4px;
             border-radius: 5px;
-            box-shadow: 5px 5px 5px #eee;
+            border-style: solid;
+            border-image: linear-gradient(0deg, #1b1e20, #212529) 1;
+            color: #bfbfbf;
+            background: rgb(33,37,41);
+            background: linear-gradient(180deg, rgba(33,37,41,1) 0%, rgba(53,58,61,1) 50%, rgba(33,37,41,1) 100%);
+            color: #FFF;
             text-shadow: none;
-            height: 35px;
+            height: 50px;
             width: 70%;
         }
         .form-submit-button {
             text-align: center;
-            background: #3c373e;
-            color: #fff;
-            border: 1px solid #eee;
+            border-width: 4px;
             border-radius: 5px;
-            box-shadow: 5px 5px 5px #eee;
+            border-style: solid;
+            border-image: linear-gradient(0deg, #1b1e20, #212529) 1;
+            color: #bfbfbf;
+            background: rgb(33,37,41);
+            background: linear-gradient(180deg, rgba(33,37,41,1) 0%, rgba(53,58,61,0.2805497198879552) 50%, rgba(33,37,41,1) 100%);
             text-shadow: none;
-            height: 35px;
+            height: 50px;
             width: 70%;
         }
         label {
-            color: #fff;
+            color: #bfbfbf;
             padding-right: 50px;
-            width: 300px;
+            text-align: right;
         }
     </style>
 </head>
@@ -276,9 +293,9 @@ if ($_SESSION['loggedin']) {
         <section style="margin: 10px;">
         <fieldset style="border-radius: 5px; padding: 5px; min-height:140px;">
                 <legend>💩 Latrine poop analyst login</legend>
-                <label for="username">Analyst username</label>
+                <label for="username">Username</label>
                 <input type="text" name="username" placeholder="Username" required><br/></br>
-                <label for="password">Your poop password</label>
+                <label for="password">Password</label>
                 <input type="password" name="password" placeholder="Password" required><br/></br>
                 <input class="form-submit-button" type="submit" value="Start analyzing the poop!">
                 </br></br>
