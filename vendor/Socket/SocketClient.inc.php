@@ -21,6 +21,7 @@ class SocketClient {
 	private $encryptionCertKEY = false;
     private $isStream = false;
     private $isEncrypted = false;
+    private $encryptionMeta = false;
     private $clientIdleTimer = 0;
     private $clientIdle = false;
     private $defaultBufferSize = 1024;
@@ -43,8 +44,8 @@ class SocketClient {
 
         $address = ''; 
         $port = '';
-        $peeraddress = ''; 
-        $peerport = '';
+        $peeraddress = '169.254.1.1'; 
+        $peerport = '0';
 
         if ( $this->isStream === true ) {
             $srvInfo = @stream_socket_get_name($connection, false);
@@ -235,6 +236,8 @@ class SocketClient {
         } else {
             $this->logger->logMessage('[client] Encryption enabled', 'DEBUG');
             $this->isEncrypted = true;
+            $_array = stream_get_meta_data($this->connection);
+            $this->encryptionMeta = $_array['crypto'];
         }
     }
 
@@ -245,6 +248,11 @@ class SocketClient {
     // GEt if encrypted
     public function isEncrypted() {
         return $this->isEncrypted;
+    }
+
+    // Public get crypto meta
+    public function getEncryptionMeta() {
+        return $this->encryptionMeta;
     }
 
     // Socket Client Close

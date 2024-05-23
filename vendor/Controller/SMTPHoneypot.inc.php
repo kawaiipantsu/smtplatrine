@@ -162,6 +162,8 @@ class SMTPHoneypot {
     // Create the Received email EML initial header
     private function buildReceivedHeader() {
 
+        $resv = array();
+
         // Set default values for our Received header
         $domain = array_key_exists("smtp_domain",$this->config['smtp']) ? trim($this->config['smtp']['smtp_domain']) : 'smtp.example.com';
         $banner = array_key_exists("smtp_banner",$this->config['smtp']) ? trim($this->config['smtp']['smtp_banner']) : 'SMTP Honeypot';
@@ -174,9 +176,10 @@ class SMTPHoneypot {
         // TODO: preg_match_all on Received headers
 
         // Now add our own Received header (top of the eml)
-        $resv = "Received: from %%CLIENTIPREVERSE%% (%%CLIENTIPREVERSE%% [%%CLIENTIP%%])\r\n";
-        $resv .= "\tby ".$domain." (Postfix) with ".$smtpType." id ".$this->emailQueueID."\r\n";
-        $resv .= "\tor <".$this->emailHELO.">; ".date('r')."\r\n";
+        $resv[] = "Received: from %%CLIENTIPREVERSE%% (%%CLIENTIPREVERSE%% [%%CLIENTIP%%])\r\n";
+        $resv[] = "\t%%ENCRYPTION%%\r\n";
+        $resv[] = "\tby ".$domain." (Postfix) with ".$smtpType." id ".$this->emailQueueID."\r\n";
+        $resv[] = "\tfor <".$this->emailHELO.">; ".date('r')."\r\n";
 
         // Return the new build Received header(s)
         return $resv;
@@ -207,7 +210,10 @@ class SMTPHoneypot {
         // SMTP Received headers
         // We prepend ours to the top of the email EML, if it already comes with Received headers
         // they will automatically be added below ours
-        $this->emailEML .= $this->buildReceivedHeader();
+        $receivedHeaders = $this->buildReceivedHeader();
+        foreach($receivedHeaders as $header) {
+            $this->emailEML .= $header;
+        }
 
         // Make local copy of email data, to work on without destroying the original
         $emailEML = $this->emailData;

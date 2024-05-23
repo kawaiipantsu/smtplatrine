@@ -459,6 +459,16 @@ class connectionHandler {
             $data = str_replace('%%CLIENTIPREVERSE%%',gethostbyaddr($client->getPeerAddress()),$data);
             $data = str_replace('%%CLIENTPORT%%',$client->getPeerPort(),$data);
 
+            // Check if in crypto mode
+            if ( $client->isEncrypted() ) {
+                $cryptoArray = $client->getEncryptionMeta();
+                // Mimic "(using TLSv1.2 with cipher ECDHE-RSA-AES128-SHA256 (128/128 bits))"
+                $encryptionInfo = "(using ".$cryptoArray['protocol']." with cipher ".$cryptoArray['cipher_name']." (".$cryptoArray['cipher_bits']."/".$cryptoArray['cipher_bits']." bits))";
+                $data = str_replace('%%ENCRYPTION%%',$encryptionInfo,$data);
+            } else {
+                $data = str_replace("\t%%ENCRYPTION%%\r\n","",$data); // Completely remove the line
+            }
+
             // Prepare our Email parser for EML data
             // This will parse the email and make it ready for storage in the database
             // This will also handle attachments (blob) data directly and store to disk if needed
