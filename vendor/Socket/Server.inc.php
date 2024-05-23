@@ -225,7 +225,7 @@ class Server {
 		$read = array($this->server);
 		$write = null;
 		$except = null;
-		$changed = stream_select($read, $write, $except, 0, 0);
+		$changed = @stream_select($read, $write, $except, 0, 0);
 		if(!$changed) {
 			return false;
 		}
