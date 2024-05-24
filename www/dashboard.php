@@ -27,6 +27,37 @@ if ( array_key_exists("monitor",$_GET ) ) {
     $monitorMode = true;
 }
 
+// Set active array based on GET parameters
+switch (true) {
+    case array_key_exists("emails",$_GET):
+        $active = array("emails" => "active");
+        break;
+    case array_key_exists("recipients",$_GET):
+        $active = array("recipients" => "active");
+        break;
+    case array_key_exists("credentials",$_GET):
+        $active = array("credentials" => "active");
+        break;
+    case array_key_exists("attachments",$_GET):
+        $active = array("attachments" => "active");
+        break;
+    case array_key_exists("clients",$_GET):
+        $active = array("clients" => "active");
+        break;
+    case array_key_exists("raw",$_GET):
+        $active = array("raw" => "active");
+        break;
+    case array_key_exists("blacklist",$_GET):
+        $active = array("blacklist" => "active");
+        break;
+    case array_key_exists("logout",$_GET):
+        $active = array("logout" => "active");
+        break;
+    default:
+        $active = array("dashboard" => "active");
+        break;
+}
+
 
 ?><!doctype html>
 <html lang="en" />
@@ -45,289 +76,108 @@ if ( array_key_exists("monitor",$_GET ) ) {
     <meta property="og:image" content="/assets/images/smtplatrine_logo.png" />
     <link rel="icon" type="image/x-icon" href="/assets/favicon.ico">
 
-    <style>
-        html, body, div, span, applet, object, iframe,
-        h1, h2, h3, h4, h5, h6, p, blockquote, pre,
-        a, abbr, acronym, address, big, cite, code,
-        del, dfn, em, img, ins, kbd, q, s, samp,
-        small, strike, strong, sub, sup, tt, var,
-        b, u, i, center,
-        dl, dt, dd, ol, ul, li,
-        fieldset, form, label, legend,
-        table, caption, tbody, tfoot, thead, tr, th, td,
-        article, aside, canvas, details, embed, 
-        figure, figcaption, footer, header, hgroup, 
-        menu, nav, output, ruby, section, summary,
-        time, mark, audio, video {
-        margin: 0;
-        padding: 0;
-        border: 0;
-        font-size: 100%;
-        font: inherit;
-        vertical-align: baseline;
-        }
+    <script src="https://code.jquery.com/jquery-3.7.1.min.js" integrity="sha256-/JqT3SQfawRcv/BIHPThkBvs0OEvtFFmqPF/lYI/Cxo=" crossorigin="anonymous"></script>
 
-        html { 
-            background-color: #021B2A;
-            filter: brightness(1.2);
-            <?PHP if ( $monitorMode) { ?>
-            overflow-y: hidden; /* Hide vertical scrollbar */
-            overflow-x: hidden; /* Hide horizontal scrollbar */
-            <?PHP } else { ?>
-            overflow-y:scroll;
-            overflow-x:hidden;
-            <?PHP } ?>
-        }
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" integrity="sha512-SnH5WK+bZxgPHs44uWIX+LLJAJ9/2PkPKZ5QiAj6Ta86w+fsb2TkcmfRyVX3pBnMFcV7oQPJkl9QevSCWr3W6A==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+    
+    <link rel="stylesheet" href="/assets/css/main.css">
 
-        body {
-            <?PHP if ( !$monitorMode) { ?>
-            background-image: url("/assets/images/smtplatrine_cover.png"); 
-            background-origin: border-box;
-            background-repeat: no-repeat;
-            background-attachment: fixed; 
-            background-position: top;
-            background-blend-mode: difference;
-            background-size: 360px;
-            padding-top: 80px;
-            <?PHP } else { ?>
 
-            <?PHP } ?>
-            color: #301934;
-            font-size: 11pt;
-            font-family: 'Verdana', sans-serif;
-        }
-        .parent {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-        }
-        .child {
-            width: 1600px;
-            text-align: left;
-            padding: 15px;
-            font-weight: bold;
-        }
-        .footer {
-            font-size: 8pt;
-            color: #999999;
-            text-align: center;
-            <?PHP if ( $monitorMode) echo "display: none;\n"; ?>
-        }
-        fieldset {
-            font-family: sans-serif;
-            border: 5px solid #1F497D;
-            background: #ddd;
-            border-radius: 5px;
-            padding: 15px;
-            width: 100%;
-        }
-
-        fieldset legend { 
-            background-color: #1F497D;
-            color: #fff;
-            padding: 10px 50px;
-            font-size: 14pt;
-            border-radius: 5px;
-            box-shadow: 0 0 0 5px #ddd;
-            margin-left: 10px;
-            margin-bottom: 10px;
-            width: 300px;
-            <?PHP if ( $monitorMode) echo "display: none;\n"; ?>
-        }
-        input[type="text"], input[type="password"] {
-            padding: 4px;
-            border-radius: 5px;
-            border: 1px solid #1F497D;
-            margin: 2px;
-        }
-        .form-submit-button:hover {
-            background: #016;
-            color: #fff;
-            border: 1px solid #eee;
-            border-radius: 5px;
-            box-shadow: 5px 5px 5px #eee;
-            text-shadow: none;
-            height: 35px;
-            width: 70%;
-        }
-        .form-submit-button {
-            background: #016ABC;
-            color: #fff;
-            border: 1px solid #eee;
-            border-radius: 5px;
-            box-shadow: 5px 5px 5px #eee;
-            text-shadow: none;
-            height: 35px;
-            width: 70%;
-        }
-        .form-menu-button:hover {
-            background: #016;
-            color: #fff;
-            border: 1px solid #eee;
-            border-radius: 5px;
-            box-shadow: 5px 5px 5px #eee;
-            text-shadow: none;
-            height: 35px;
-            width: 100%;
-        }
-        .form-menu-button {
-            background: #016ABC;
-            color: #fff;
-            border: 1px solid #eee;
-            border-radius: 5px;
-            box-shadow: 5px 5px 5px #eee;
-            text-shadow: none;
-            height: 35px;
-            width: 100%;
-        }
-        .menu {
-            display: flex;
-            justify-content: space-between;
-            margin-bottom: 10px;
-            width: 100%;
-        }
-        .content {
-            border: 2px solid #1F497D;
-        }
-        .main {
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            height: 600px;
-            width: 100%;
-        }
-        .tablecontainer {
-            width: 1520px;
-            height: 600px;
-            margin-left: auto;
-            margin-right: auto;
-            padding-left: 10px;
-            padding-right: 10px;
-            overflow-y: scroll;
-        }
-
-        h2 {
-            font-size: 26px;
-            margin: 20px 0;
-            text-align: center;
-        }
-        h2 small {
-            font-size: 0.5em;
-        }
-        .responsive-table li {
-            border-radius: 5px;
-            padding: 5px;
-            display: flex;
-            justify-content: space-between;
-            margin-bottom: 10px;
-        }
-        .responsive-table .table-header {
-            color: #fff;
-            background-color: #1F497D;
-            font-size: 14px;
-            text-transform: uppercase;
-            letter-spacing: 0.03em;
-            position: absolute;
-            width: 1495px;
-        }
-        .responsive-table .table-row {
-            background-color: #ffffff;
-            -webkit-box-shadow: 3px 3px 8px 1px rgba(0,0,0,0.14); 
-            box-shadow: 3px 3px 8px 1px rgba(0,0,0,0.14);
-        }
-        .col {
-
-        }
-        .responsive-table .col-1 {
-            flex-basis: 200px;
-            text-align: center;
-        }
-        .responsive-table .col-2 {
-            flex-basis: 150px;
-        }
-        .responsive-table .col-3 {
-            flex-basis: 350px;
-        }
-        .responsive-table .col-4 {
-            flex-basis: 415px;
-        }
-        .responsive-table .col-5 {
-            flex-basis: 50px;
-            text-align: center;
-        }
-        .responsive-table .col-6 {
-            flex-basis: 200px;
-        }
-        .responsive-table .col-7 {
-            flex-basis: 130px;
-            text-align: center;
-        }
-        
-        @media all and (max-width: 767px) {
-            .responsive-table .table-header {
-                display: none;
-            }
-            .responsive-table li {
-                display: block;
-            }
-            .responsive-table .col {
-                flex-basis: 100%;
-            }
-            .responsive-table .col {
-                display: flex;
-                padding: 10px 0;
-            }
-            .responsive-table .col:before {
-                color: #6C7A89;
-                padding-right: 10px;
-                content: attr(data-label);
-                flex-basis: 50%;
-                text-align: right;
-            }
-        }
-        .flag {
-            -webkit-box-shadow: 5px 5px 8px 1px rgba(0,0,0,0.14); 
-            box-shadow: 5px 5px 8px 1px rgba(0,0,0,0.14);
-            border-radius: 0px;
-            width: 25px;
-            height: 15px;
-        }
-        .faded {
-            color: #808080;
-        }
-    </style>
+    <script src="/assets/js/main.js"></script>
 </head>
 <body>
     <div class="parent">
-        <div class="child">
-            <fieldset>
-                <legend>📊 Dashboard</legend>
-                <p>👤 Welcome back, <?PHP echo $_SESSION['username']; ?>!</p>
-                <div class="menu">
-                    
-                        <input type="button" value="📊 Dashboard" onclick="window.location.href='/dashboard.php'" class="form-menu-button" />
-                        <input type="button" value="📬 E-Mails overview" onclick="window.location.href='/overview.php?emails'" class="form-menu-button" />
-                        <input type="button" value="📧 Recipients overview" onclick="window.location.href='/overview.php?recipients'" class="form-menu-button" />
-                        <input type="button" value="🔐 Credentials overview" onclick="window.location.href='/overview.php?credentials'" class="form-menu-button" />
-                        <input type="button" value="📂 Attachments overview" onclick="window.location.href='/overview.php?attachments'" class="form-menu-button" />
-                        <input type="button" value="🌐 Clients overview" onclick="window.location.href='/overview.php?clients'" class="form-menu-button" />
-                        <input type="button" value="✉️ Raw emails" onclick="window.location.href='/'" class="form-menu-button" />
-                        <input type="button" value="🛡️ Blacklist control" onclick="window.location.href='/'" class="form-menu-button" />
-                        <input type="button" value="🔑 Logout" onclick="window.location.href='/?logout'" class="form-menu-button" />
-                    </div>
-                <div class="content">
-                    
-                    <br/>
-                    <div class="main">
-                    This is in it's very early stages of development, please check back later.
-                    </div>
+        <div class="content">
+            <div id="menu">
+                <div class="logo"></div>
+                <div class="topnav" id="myTopnav">
+                <a href="/dashboard.php" class="<?PHP echo $active["dashboard"]; ?>">📊 Dashboard</a>
+                <a href="/dashboard.php?emails" class="<?PHP echo $active["emails"]; ?>">📬 E-Mails</a>
+                <a href="/dashboard.php?recipients" class="<?PHP echo $active["recipients"]; ?>">📧 Recipients</a>
+                <a href="/dashboard.php?credentials" class="<?PHP echo $active["credentials"]; ?>">🔐 Credentials</a>
+                <a href="/dashboard.php?attachments" class="<?PHP echo $active["attachments"]; ?>">📂 Attachments</a>
+                <a href="/dashboard.php?clients" class="<?PHP echo $active["clients"]; ?>">🌐 Clients</a>
+                <a href="/dashboard.php?raw" class="<?PHP echo $active["raw"]; ?>">✉️ Raw</a>
+                <a href="/dashboard.php?blacklist" class="<?PHP echo $active["blacklist"]; ?>">🛡️ Blacklist</a>
+                <a href="/?logout" class="<?PHP echo $active["logout"]; ?>">🔑 Logout</a>
+                <a href="javascript:void(0);" class="icon" onclick="showMenu()">
+                    <i class="fa fa-bars"></i>
+                </a>
                 </div>
-            </fieldset>
-            <div class="footer">
-                <br/>
-                <p>A custom SMTP Honeypot written in PHP, with focus on gathering intel on threat actors and for doing spam forensic work</p>
+            </div>
+            <div class="main">
+
+<?PHP
+ if ( array_key_exists("clients",$_GET) ) {
+?>
+<div class="table100 ver3 m-b-110">
+<div class="table100-head">
+<table id="table">
+<thead>
+<tr class="row100 head">
+<th class="cell100 column1 showsort">Last seen <i class="fa-solid fa-arrow-down-short-wide"></i></th>
+<th class="cell100 column2 hidesort">IP address <i class="fa-solid fa-arrow-down-short-wide"></i></th>
+<th class="cell100 column3 hidesort">Reverse DNS <i class="fa-solid fa-arrow-down-short-wide"></i></th>
+<th class="cell100 column4 hidesort">Autonomous System (AS) name <i class="fa-solid fa-arrow-down-short-wide"></i></th>
+<th class="cell100 column5 hidesort">Flag <i class="fa-solid fa-arrow-down-short-wide"></i></th>
+<th class="cell100 column6 hidesort">Country <i class="fa-solid fa-arrow-down-short-wide"></i></th>
+<th class="cell100 column7 hidesort">Conn seen <i class="fa-solid fa-arrow-down-short-wide"></i></th>
+</tr>
+</thead>
+</table>
+</div>
+<div class="table100-body js-pscroll ps ps--active-y">
+<table id="datatable">
+<tbody>
+
+<?PHP
+$clients = $db->getHoneypotClients();
+foreach ($clients as $row) {
+
+    if ( $row["clients_seen_last"] != "0000-00-00 00:00:00" ) $seen = $row["clients_seen_last"];
+    else $seen = $row["clients_seen_first"];
+
+    $clientip = $row["clients_ip"];
+    if ( $clientip == "" ) $clientip = "-";
+    $clienthost = $row["clients_hostname"];
+    if ( $clienthost == "" ) $clienthost = "-";
+    $clientas = $row["clients_as_name"];
+    if ( $clientas == "" ) $clientas = "-";
+    $clientflag = $row["clients_geo_country_code"];
+    $clientcountry = $row["clients_geo_country_name"];
+    if ( $clientcountry == "" ) $clientcountry = "-";
+
+    if ( $clientflag != "" ) $flagimg = "<img class=\"flag\" src='/assets/images/flags/".strtolower($clientflag).".png' alt='".$clientflag."' />";
+    else $flagimg = "<img class=\"flag\" src='/assets/images/flags/unknown.png' alt='Unknown' />";
+    
+    
+    $numseen = $row["clients_seen"];
+
+?>
+
+<tr class="row100 body">
+    <td class="cell100 column1"><?=htmlentities($seen)?></td>
+    <td class="cell100 column2 more"><?=htmlentities($clientip)?></td>
+    <td class="cell100 column3"><?=htmlentities($clienthost)?></td>
+    <td class="cell100 column4"><?=htmlentities($clientas)?></td>
+    <td class="cell100 column5"><?=$flagimg?></td>
+    <td class="cell100 column6"><?=htmlentities($clientcountry)?></td>
+    <td class="cell100 column7"><?=htmlentities($numseen)?></td>
+</tr>
+<?PHP
+}
+?>
+</tbody>
+</table>
+</div>
+
+
+<?PHP
+ }
+?>
             </div>
         </div>
     </div>
+    <div class="footer">A custom SMTP Honeypot written in PHP, with focus on gathering intel on threat actors and for doing spam forensic work</div>
 </body>
 </html>
