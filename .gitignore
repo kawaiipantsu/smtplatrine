@@ -2,6 +2,8 @@
 # INI files with credentials or keys
 etc/database.ini
 etc/meta.ini
+etc/server.ini
+etc/logger.ini
 # Logs files
 logs/*.log
 # Attachments
