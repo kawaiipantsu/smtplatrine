@@ -516,32 +516,26 @@ class Server {
 	
 	// Create a stream socket
 	private function createStreamSocket() {
-		//$context = stream_context_create();
+
+		// Build context stream options like reuse port and backlog
 		$opts = array(
 			'socket' => array(
-				'backlog' => 5,
-				'so_reuseport' => true,
-			),
-			'ssl' => array(
-				'local_cert' => "/var/www/projects/smtplatrine/etc/certs/smtp.srv25.barebone.com.pem",
-				'local_pk' => "/var/www/projects/smtplatrine/etc/certs/smtp.srv25.barebone.com.key",
-				'disable_compression' => true,
-				'verify_peer' => false,
-				'verify_peer_name' => false,
-				'allow_self_signed' => true
+				'backlog' => 10,
+				'so_reuseport' => true
 			)
 		);
-		
 
-		$socket = stream_socket_server('tcp://'.$this->address.':'.$this->port, $errno, $errstr, STREAM_SERVER_BIND|STREAM_SERVER_LISTEN);
+		$socket = stream_socket_server('tcp://'.$this->address.':123	', $errno, $errstr, STREAM_SERVER_BIND|STREAM_SERVER_LISTEN);
 		if ( !$socket ) {
 			throw new SocketException( 
 				SocketException::CANT_CREATE_SOCKET, $errstr
 			);
 		}
 
+		// Set stream context options
 		stream_context_set_option($socket, $opts);
 
+		// Set socket timeout (however this does not seem to do what we want, so we handle timeout in the loop instead)
 		stream_set_timeout( $socket, $this->socketRecvTimeout);
 
 		$this->server = $socket;
