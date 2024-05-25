@@ -84,6 +84,14 @@ class SocketClient {
 		$this->encryptionCertPEM = array_key_exists('server_cert_pem',$this->config['server']) ? trim($this->config['server']['server_cert_pem']) : false;
 		$this->encryptionCertKEY = array_key_exists('server_cert_key',$this->config['server']) ? trim($this->config['server']['server_cert_key']) : false;
 
+        // Check if it's an absolute path or not
+        if ( substr($this->encryptionCertPEM,0,1) !== '/' ) {
+            $this->encryptionCertPEM = __DIR__ . '/../../etc/certs/' . $this->encryptionCertPEM;
+        }
+        if ( substr($this->encryptionCertKEY,0,1) !== '/' ) {
+            $this->encryptionCertKEY = __DIR__ . '/../../etc/certs/' . $this->encryptionCertKEY;
+        }
+
         // Get timeout value fro config or set default
 		$this->socketRecvTimeout = array_key_exists('server_idle_timeout',$this->config['server']) ? intval($this->config['server']['server_idle_timeout']) : 60;
 		$this->socketSendTimeout = array_key_exists('server_idle_timeout',$this->config['server']) ? intval($this->config['server']['server_idle_timeout']) : 60;
@@ -213,8 +221,8 @@ class SocketClient {
     public function enableEncryption() {
 
         // Log debug about loading keys
-        $this->logger->logMessage('[client] TLS: Loading PEM file: '.__DIR__ . '/../../etc/certs/' . $this->encryptionCertPEM, 'DEBUG');
-        $this->logger->logMessage('[client] TLS: Loading KEY file: '.__DIR__ . '/../../etc/certs/' . $this->encryptionCertKEY, 'DEBUG');
+        $this->logger->logMessage('[client] TLS: Loading PEM file: '.$this->encryptionCertPEM, 'DEBUG');
+        $this->logger->logMessage('[client] TLS: Loading KEY file: '.$this->encryptionCertKEY, 'DEBUG');
 
         $opts = array(
 			'socket' => array(
@@ -222,8 +230,8 @@ class SocketClient {
 				'so_reuseport' => true,
 			),
 			'ssl' => array(
-				'local_cert' => __DIR__ . '/../../etc/certs/' . $this->encryptionCertPEM,
-				'local_pk' => __DIR__ . '/../../etc/certs/' . $this->encryptionCertKEY,
+				'local_cert' => $this->encryptionCertPEM,
+				'local_pk' => $this->encryptionCertKEY,
 				'verify_peer' => false,
 				'verify_peer_name' => false,
 				'allow_self_signed' => true

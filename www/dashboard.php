@@ -157,13 +157,19 @@ foreach ($clients as $row) {
 
 <tr class="row100 body">
     <td class="cell100 column1"><?=htmlentities($seen)?></td>
-    <td class="cell100 column2 more"><?=htmlentities($clientip)?></td>
-    <td class="cell100 column3"><?=htmlentities($clienthost)?></td>
+    <td id="<?=htmlentities($clientip)?>" class="clientclick cell100 column2 more"><?=htmlentities($clientip)?></td>
+    <td id="<?=htmlentities($clientip)?>" class="clientclick cell100 column3"><?=htmlentities($clienthost)?></td>
     <td class="cell100 column4"><?=htmlentities($clientas)?></td>
     <td class="cell100 column5"><?=$flagimg?></td>
     <td class="cell100 column6"><?=htmlentities($clientcountry)?></td>
     <td class="cell100 column7"><?=htmlentities($numseen)?></td>
+    <div  class="clientdiv">
+        <div id="client_<?=htmlentities($clientip)?>" class="clientinfo">
+        test 123
+        </div>
+    </div>
 </tr>
+
 <?PHP
 }
 ?>

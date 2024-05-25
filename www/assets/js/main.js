@@ -1,6 +1,16 @@
 
 $( document ).ready(function() {
 
+    $('.clientclick').click(function() {
+        
+        var id = $(this).attr('id');
+        var infodiv = $("#client_"+id);
+        console.log("click: "+id);
+        console.log("click: "+infodiv);
+        $(this).parent().find('div').show();
+    })
+
+
     $('th').click(function() {
         $('th').addClass("hidesort");
         $(this).removeClass("hidesort");
