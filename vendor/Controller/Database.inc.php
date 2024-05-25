@@ -616,6 +616,20 @@ class Database {
             // Establish a connection to the database
             $this->dbMysqlConnect();
 
+
+            // Get filename extention
+            $ext = pathinfo($fields['filename'], PATHINFO_EXTENSION);
+
+            // Check if filename is longer than 128 characters, if it is then make it shorter and add extention to not break it
+            if ( strlen($fields['filename']) > 128 ) {
+                $fields['filename'] = substr($fields['filename'],0,128-strlen($ext)).".".$ext;
+            }
+
+            // Check if mime type is longer than 50 characters
+            if ( strlen($fields['type']) > 50 ) {
+                $fields['type'] = substr($fields['type'],0,50);
+            }
+
             if ( $this->dbConnected ) {
                 // INSERT INTO honeypot_attachments (attachments_email,attachments_uuid,attachments_filename,attachments_size,attachments_mimetype,attachments_stored_path,attachments_stored,attachments_hash_md5,attachments_hash_sha1,attachments_hash_sha256)
                 // VALUES (1,'1234567890','test.txt',1234,'text/plain','/path/to/file',1,'1234567890','1234567890','1234567890')
