@@ -15,8 +15,14 @@ $db = new \Controller\Database;
 // Log debug about index page being loaded
 $logger->logDebugMessage("Dashboard page loaded by ".$_SERVER['REMOTE_ADDR']);
 
-// Check if loggedin session variable is not set then redirect to index.php
-if ( !isset($_SESSION['loggedin']) ) {
+// Check if loggedin session variable is not set - Boot em out
+if ( isset($_SESSION['loggedin']) === false ) {
+    header("Location: /");
+    exit();
+}
+
+// Check if loggedin session variable IS false - Boot em out
+if ( $_SESSION['loggedin'] === false ) {
     header("Location: /");
     exit();
 }
