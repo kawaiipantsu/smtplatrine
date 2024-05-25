@@ -16,7 +16,7 @@ $db = new \Controller\Database;
 $logger->logDebugMessage("Dashboard page loaded by ".$_SERVER['REMOTE_ADDR']);
 
 // Check if loggedin session variable is not set - Boot em out
-if ( !isset($_SESSION['loggedin'])$_SESSION['loggedin'] === false ) {
+if ( isset($_SESSION['loggedin']) === false ) {
     header("Location: /");
     exit();
 }
