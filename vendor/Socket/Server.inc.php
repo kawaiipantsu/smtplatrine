@@ -525,7 +525,7 @@ class Server {
 			)
 		);
 
-		$socket = stream_socket_server('tcp://'.$this->address.':123	', $errno, $errstr, STREAM_SERVER_BIND|STREAM_SERVER_LISTEN);
+		$socket = stream_socket_server('tcp://'.$this->address.':'.$this->port, $errno, $errstr, STREAM_SERVER_BIND|STREAM_SERVER_LISTEN);
 		if ( !$socket ) {
 			throw new SocketException( 
 				SocketException::CANT_CREATE_SOCKET, $errstr
