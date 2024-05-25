@@ -622,12 +622,12 @@ class Database {
 
             // Check if filename is longer than 128 characters, if it is then make it shorter and add extention to not break it
             if ( strlen($fields['filename']) > 128 ) {
-                $fields['filename'] = substr($fields['filename'],0,128-strlen($ext)).".".$ext;
+                $fields['filename'] = substr($fields['filename'],0,127-strlen($ext)).".".$ext;
             }
 
             // Check if mime type is longer than 50 characters
             if ( strlen($fields['type']) > 50 ) {
-                $fields['type'] = substr($fields['type'],0,50);
+                $fields['type'] = substr($fields['type'],0,49);
             }
 
             if ( $this->dbConnected ) {
