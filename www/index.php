@@ -47,7 +47,7 @@ if ( array_key_exists("login",$_GET ) ) {
             if ( $row ) {
                 $_SESSION['loggedin'] = true;
                 $_SESSION['username'] = $row['users_username'];
-                $_SESSION['password'] = $row['users_password'];
+                $_SESSION['password'] = false;
                 $_SESSION['role']     = $row['users_role'];
                 $logger->logMessage("User ".$username." logged in from ".$_SERVER['REMOTE_ADDR'],'NOTICE');
                 header("Location: /index.php?dashboard");
