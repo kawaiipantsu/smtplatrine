@@ -98,7 +98,7 @@ CREATE TABLE IF NOT EXISTS `honeypot_credentials` (
   `credentials_password` varchar(60) DEFAULT NULL COMMENT 'These will be converted to UTF8, might corrupt them',
   `credentials_serialized_original` varchar(512) DEFAULT NULL COMMENT 'Serialized array with original encoding',
   PRIMARY KEY (`id`) USING BTREE
-) ENGINE=InnoDB AUTO_INCREMENT=14 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci COMMENT='Any AUTH credentials seen is listed here';
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci COMMENT='Any AUTH credentials seen is listed here';
 
 DROP TABLE IF EXISTS `honeypot_emails`;
 CREATE TABLE IF NOT EXISTS `honeypot_emails` (
@@ -130,7 +130,7 @@ CREATE TABLE IF NOT EXISTS `honeypot_emails` (
   `emails_rawemails_id` int(11) NOT NULL,
   PRIMARY KEY (`id`),
   KEY `fk_emails_client_ip` (`emails_client_ip`) USING BTREE
-) ENGINE=InnoDB AUTO_INCREMENT=37 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci COMMENT='This table will consist of all mails recieved via the SMTP honeypot';
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci COMMENT='This table will consist of all mails recieved via the SMTP honeypot';
 
 DROP TABLE IF EXISTS `honeypot_rawemails`;
 CREATE TABLE IF NOT EXISTS `honeypot_rawemails` (
@@ -139,7 +139,7 @@ CREATE TABLE IF NOT EXISTS `honeypot_rawemails` (
   `rawemails_received` timestamp NULL DEFAULT current_timestamp(),
   `rawemails_keep` enum('Keep','Unseen','Seen','Delete') NOT NULL DEFAULT 'Unseen',
   PRIMARY KEY (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=43 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci COMMENT='This table will hold a backup of the complete raw email recieved by the client, please note this can take up space and should be cleaned up regularly see contrib';
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci COMMENT='This table will hold a backup of the complete raw email recieved by the client, please note this can take up space and should be cleaned up regularly see contrib';
 
 DROP TABLE IF EXISTS `honeypot_recipients`;
 CREATE TABLE IF NOT EXISTS `honeypot_recipients` (
@@ -154,7 +154,7 @@ CREATE TABLE IF NOT EXISTS `honeypot_recipients` (
   PRIMARY KEY (`id`),
   UNIQUE KEY `recipients_address` (`recipients_address`),
   KEY `recipients_domain` (`recipients_domain`)
-) ENGINE=InnoDB AUTO_INCREMENT=44 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci COMMENT='This table holds all seen recipients from the SMTP sessions, we don''t have duplicates however we update a seen count';
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci COMMENT='This table holds all seen recipients from the SMTP sessions, we don''t have duplicates however we update a seen count';
 
 DROP TABLE IF EXISTS `meta_abuseipdb`;
 CREATE TABLE IF NOT EXISTS `meta_abuseipdb` (
@@ -221,7 +221,7 @@ CREATE TABLE IF NOT EXISTS `www_users` (
   `users_email` varchar(128) DEFAULT NULL COMMENT 'Will try and use it for gravatar as well',
   `users_role` enum('Statistical analyst','Forensic analyst','Admin') DEFAULT 'Statistical analyst',
   PRIMARY KEY (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=6 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci COMMENT='This table is just credentials that can login on the web page for stats and forensic work';
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci COMMENT='This table is just credentials that can login on the web page for stats and forensic work';
 
 /*!40103 SET TIME_ZONE=IFNULL(@OLD_TIME_ZONE, 'system') */;
 /*!40101 SET SQL_MODE=IFNULL(@OLD_SQL_MODE, '') */;
