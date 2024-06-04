@@ -144,17 +144,17 @@ class SocketClient {
             // Check if isEncrypted then use fwrite instead
             if ( $this->isEncrypted === true ) {
                 if ( false === @fwrite( $this->connection, $message ) ) {
-                    $this->logger->logMessage('[client] '.socket_strerror(socket_last_error()), 'WARNING');
+                    $this->logger->logMessage('[client] fwrite: '.socket_strerror(socket_last_error()), 'WARNING');
                 }
             } else {
                 if ( false === @stream_socket_sendto( $this->connection, $message ) ) {
-                    $this->logger->logMessage('[client] '.socket_strerror(socket_last_error()), 'WARNING');
+                    $this->logger->logMessage('[client] stream_socket_sendto: '.socket_strerror(socket_last_error()), 'WARNING');
                 }
             }
             $this->refreshIdleTimer(); // We sent data so we cant expect the client to be idle just yet
         } else {
             if ( false === @socket_write($this->connection, $message, strlen($message)) ) {
-                $this->logger->logMessage('[client] '.socket_strerror(socket_last_error()), 'WARNING');
+                $this->logger->logMessage('[client] socket_write: '.socket_strerror(socket_last_error()), 'WARNING');
             }
             $this->refreshIdleTimer(); // We sent data so we cant expect the client to be idle just yet
         }
@@ -240,7 +240,7 @@ class SocketClient {
         stream_context_set_option($this->connection, $opts);
         $status = stream_socket_enable_crypto($this->connection, true, $this->encryptionMethod);
         if ( $status === false ) {
-            $this->logger->logMessage('[client] '.socket_strerror(socket_last_error()), 'WARNING');
+            $this->logger->logMessage('[client] stream_socket_enable_crypto: '.socket_strerror(socket_last_error()), 'WARNING');
         } else {
             $this->logger->logMessage('[client] Encryption enabled', 'DEBUG');
             $this->isEncrypted = true;
@@ -268,12 +268,12 @@ class SocketClient {
         // IF resource is a stream
         if ( $this->isStream === true ) {
             if ( false === @stream_socket_shutdown( $this->connection, 2 ) ) {
-                $this->logger->logMessage('[client] '.socket_strerror(socket_last_error()), 'WARNING');
+                $this->logger->logMessage('[client] stream_socket_shutdown: '.socket_strerror(socket_last_error()), 'WARNING');
             }
             fclose( $this->connection );
         } else {
             if ( false === @socket_shutdown( $this->connection, 2 ) ) {
-                $this->logger->logMessage('[client] '.socket_strerror(socket_last_error()), 'WARNING');
+                $this->logger->logMessage('[client] socket_shutdown: '.socket_strerror(socket_last_error()), 'WARNING');
             }
             socket_close( $this->connection );
         }
