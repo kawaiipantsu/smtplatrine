@@ -14,6 +14,9 @@ $db = new \Controller\Database;
 
 // Log debug about index page being loaded
 $logger->logDebugMessage("Dashboard page loaded by ".$_SERVER['REMOTE_ADDR']);
+// Overrule what ever we have in confing for logger
+$logger->enableReporting(); // Defaults to only E_ERROR
+$logger->disableDisplay(); // Disable display of log messages
 
 // Check if loggedin session variable is not set - Boot em out
 if ( isset($_SESSION['loggedin']) === false ) {
@@ -162,15 +165,17 @@ foreach ($clients as $row) {
 
 <tr class="row100 body">
     <td class="cell100 column1"><?=htmlentities($seen)?></td>
-    <td id="<?=htmlentities($clientip)?>" class="clientclick cell100 column2 more"><?=htmlentities($clientip)?></td>
-    <td id="<?=htmlentities($clientip)?>" class="clientclick cell100 column3"><?=htmlentities($clienthost)?></td>
+    <td id="<?=ip2long($clientip)?>" class="clientclick cell100 column2 more"><?=htmlentities($clientip)?></td>
+    <td id="<?=ip2long($clientip)?>" class="clientclick cell100 column3"><?=htmlentities($clienthost)?></td>
     <td class="cell100 column4"><?=htmlentities($clientas)?></td>
     <td class="cell100 column5"><?=$flagimg?></td>
     <td class="cell100 column6"><?=htmlentities($clientcountry)?></td>
     <td class="cell100 column7"><?=htmlentities($numseen)?></td>
-    <div  class="clientdiv">
-        <div id="client_<?=htmlentities($clientip)?>" class="clientinfo">
-        test 123
+    <div id="clientdiv<?=ip2long($clientip)?>" class="clientdiv hidediv">
+        <div class="clientinfo">
+            <div class="clientinfoheader">Client information</div>
+            <div class="closedetails" id="<?=ip2long($clientip)?>"><small>(Hit Esc or Close)</small> <i class="fa fa-window-close" aria-hidden="true"></i></div>
+            
         </div>
     </div>
 </tr>

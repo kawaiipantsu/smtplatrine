@@ -4,11 +4,25 @@ $( document ).ready(function() {
     $('.clientclick').click(function() {
         
         var id = $(this).attr('id');
-        var infodiv = $("#client_"+id);
-        console.log("click: "+id);
-        console.log("click: "+infodiv);
-        $(this).parent().find('div').show();
+        var infodiv = "#client-"+id;
+        $("#clientdiv"+id).removeClass("hidediv");
+        $("#clientdiv"+id).addClass("showdiv");
+
+        $(document).keyup(function(e) {
+            if (e.key === "Escape") {
+                $("#clientdiv"+id).removeClass("showdiv");
+                $("#clientdiv"+id).addClass("hidediv");
+            }
+        });
+        $('.closedetails').click(function() {
+            var id = $(this).attr('id');
+            $("#clientdiv"+id).removeClass("showdiv");
+            $("#clientdiv"+id).addClass("hidediv");
+        })
+
     })
+
+    
 
 
     $('th').click(function() {
